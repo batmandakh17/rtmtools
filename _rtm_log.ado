@@ -6,12 +6,13 @@
 *! and small matrix the command returned), error (with the return code), progress (a message).
 *! Switched off by rtmtools_dashboard, off. Callers wrap every call in capture, so a logging
 *! problem (a read-only folder, for example) never stops the analysis. Nothing leaves the machine.
-*! Called before the dispatcher's return add, which empties the live r() it reads.
+*! Called before the dispatcher's return add, which empties the live r() it reads. Strings are
+*! escaped for JSON in Mata (_rtm_jsesc, below), which reads macros verbatim.
 program define _rtm_log
     version 16
     gettoken what 0 : 0, parse(" ,")
     if "$RTM_DASHBOARD" == "off" exit
-    syntax , [TOOL(string) CMD(string asis) RC(integer 0) MSG(string asis)]
+    syntax , [TOOL(string) CMD(string) RC(integer 0) MSG(string)]
     local file "$RTM_DASHBOARD_FILE"
     if `"`file'"' == "" local file "rtmtools_runs.js"
     local now = clock("`c(current_date)' `c(current_time)'", "DMY hms")
@@ -22,10 +23,10 @@ program define _rtm_log
     local ds = c(filename)
     local ds : subinstr local ds "\" "/", all
     if strpos("`ds'", "/") local ds = substr("`ds'", strrpos("`ds'", "/") + 1, .)
-    _rtm_log_esc, in(`"`tool'"') out(tool_e)
-    _rtm_log_esc, in(`"`cmd'"') out(cmd_e)
-    _rtm_log_esc, in(`"`msg'"') out(msg_e)
-    _rtm_log_esc, in(`"`ds'"') out(ds_e)
+    mata: st_local("tool_e", _rtm_jsesc(st_local("tool")))
+    mata: st_local("cmd_e", _rtm_jsesc(_rtm_cmdclean(st_local("cmd"))))
+    mata: st_local("msg_e", _rtm_jsesc(st_local("msg")))
+    mata: st_local("ds_e", _rtm_jsesc(st_local("ds")))
     local json `"{"ts":"`ts'","event":"`what'","tool":"`tool_e'","cmd":"`cmd_e'","dataset":"`ds_e'","N":`=c(N)',"rc":`rc',"seconds":`dur',"msg":"`msg_e'""'
     if "`what'" == "done" {
         local res ""
@@ -36,7 +37,7 @@ program define _rtm_log
         }
         local mc : r(macros)
         foreach m of local mc {
-            _rtm_log_esc, in(`"`r(`m')'"') out(v_e)
+            mata: st_local("v_e", _rtm_jsesc(st_global("r(`m')")))
             local res `"`res'"`m'":"`v_e'","'
         }
         if `"`res'"' != "" local res = substr(`"`res'"', 1, length(`"`res'"') - 1)
@@ -53,12 +54,12 @@ program define _rtm_log
                 local cn : colnames `X'
                 local rj ""
                 foreach r of local rn {
-                    _rtm_log_esc, in(`"`r'"') out(r_e)
+                    mata: st_local("r_e", _rtm_jsesc("`r'"))
                     local rj `"`rj'"`r_e'","'
                 }
                 local cj ""
                 foreach c of local cn {
-                    _rtm_log_esc, in(`"`c'"') out(c_e)
+                    mata: st_local("c_e", _rtm_jsesc("`c'"))
                     local cj `"`cj'"`c_e'","'
                 }
                 local vj ""
@@ -83,21 +84,6 @@ program define _rtm_log
     file close `fh'
 end
 
-* escape a string for JSON (and for the compound quotes of the writer): \ " ' ` and control characters
-program define _rtm_log_esc
-    version 16
-    syntax , [in(string asis)] out(name)
-    local s `"`in'"'
-    local s : subinstr local s `"\"' `"\\"', all
-    local s : subinstr local s `"""' `"\""', all
-    local s : subinstr local s `"'"' `"'"', all
-    local s : subinstr local s "`" "`", all
-    local s : subinstr local s "`=char(9)'" "\t", all
-    local s : subinstr local s "`=char(10)'" "\n", all
-    local s : subinstr local s "`=char(13)'" "", all
-    c_local `out' `"`s'"'
-end
-
 * a number as JSON: null for missing, a leading zero before a decimal point
 program define _rtm_log_num
     version 16
@@ -111,4 +97,29 @@ program define _rtm_log_num
     if substr("`s'", 1, 1) == "." local s "0`s'"
     else if substr("`s'", 1, 2) == "-." local s "-0`=substr("`s'", 2, .)'"
     c_local `out' "`s'"
+end
+
+* JSON escaping in Mata: backslash, double quote, apostrophe and backtick (so that the text can
+* travel through Stata's compound quotes), tab, newline, carriage return
+version 16
+mata:
+string scalar _rtm_jsesc(string scalar s)
+{
+    s = subinstr(s, "\", "\\")
+    s = subinstr(s, char(34), "\" + char(34))
+    s = subinstr(s, char(39), "'")
+    s = subinstr(s, char(96), "`")
+    s = subinstr(s, char(9), "\t")
+    s = subinstr(s, char(10), "\n")
+    s = subinstr(s, char(13), "")
+    return(s)
+}
+
+// tidy the spacing the dispatchers leave around the subcommand ("rtmweight base , x" -> "rtmweight base, x")
+string scalar _rtm_cmdclean(string scalar s)
+{
+    s = subinstr(s, " ,", ",")
+    while (strpos(s, "  ")) s = subinstr(s, "  ", " ")
+    return(strtrim(s))
+}
 end

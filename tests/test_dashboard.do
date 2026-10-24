@@ -40,6 +40,7 @@ program define _rtmtest_count
     local hasres 0
     local hasmat 0
     local hasseed 0
+    local hastool 0
     file read `fh' line
     while r(eof) == 0 {
         if strpos(`"`line'"', "RTM_RUNS.push({") == 1 {
@@ -50,6 +51,7 @@ program define _rtmtest_count
             if strpos(`"`line'"', `""n_total":"') local ++hasres
             if strpos(`"`line'"', `""alloc":{"rows":["') local ++hasmat
             if strpos(`"`line'"', `""rc":459"') local ++hasseed
+            if strpos(`"`line'"', `""tool":"rtmsample size","cmd":"rtmsample size, p(0.2) deff(1) domains(2)""') local ++hastool
         }
         file read `fh' line
     }
@@ -61,6 +63,7 @@ program define _rtmtest_count
     c_local nres `hasres'
     c_local nmat `hasmat'
     c_local nrc `hasseed'
+    c_local ntool `hastool'
 end
 _rtmtest_count "`log'"
 assert `n' == 8
@@ -68,6 +71,8 @@ assert `nstart' == 4 & `ndone' == 3 & `nerror' == 1
 assert `nres' == 2
 assert `nmat' == 1
 assert `nrc' == 1
+* the tool and command strings are written (start and done events of the first command)
+assert `ntool' == 2
 
 * ---------- 3. off stops the log, on resumes it ----------
 rtmtools_dashboard, off
