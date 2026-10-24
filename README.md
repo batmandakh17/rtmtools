@@ -103,10 +103,11 @@ every option, its cited default and its limits.
 
 ## Status (24 October 2026)
 
-Version 0.2.0 holds the weighting and estimation workflow (Step 2 of the build plan, 24 October
-2026) and the sample design workflow (`rtmsample`, added the same day after the author's go-ahead).
-All nine test files pass on Stata 18 with R 4.3.1 and ReGenesees 2.5. The dialogs passed static
-checks only; they have not yet been opened in the Stata GUI. See `VALIDATION.md` (what was
+Version 0.3.0 holds the weighting and estimation workflow (Step 2 of the build plan, 24 October
+2026), the sample design workflow (`rtmsample`) and the frame workflow (`rtmframe` with
+`rtmsample grid`), the last two added the same day after the author's go-ahead. All ten test
+files pass on Stata 18 with R 4.3.1, ReGenesees 2.5, sf 1.0.15, terra 1.7.71 and spsurvey 5.5.1.
+The dialogs passed static checks only; they have not yet been opened in the Stata GUI. See `VALIDATION.md` (what was
 checked and the figures), `USABILITY.md` (the new-user passes and the fixes they led to) and
 `OPEN_ITEMS.md` (questions for the handbook's author, dependencies, what is untested).
 
