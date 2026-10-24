@@ -7,3 +7,6 @@ PROPOSAL.md
 VALIDATION.md
 USABILITY.md
 OPEN_ITEMS.md
+# run logs and dashboard config written into working folders
+rtmtools_runs.js
+rtmtools_dashboard_config.js

@@ -1,7 +1,7 @@
 # rtmtools
 
 Stata tools, with dialog boxes under **User > RTM tools**, for the statistical design work
-around a real-time monitoring phone panel. Version 0.3.0 covers three workflows: the weights
+around a real-time monitoring phone panel. Version 0.4.0 covers three workflows: the weights
 of a round (`rtmweight`: base weights, nonresponse and attrition adjustment, trimming,
 calibration, report) with design-based estimation (`rtmest`); the sample design
 (`rtmsample`: sample size per domain, allocation across strata, probability draws from a frame
@@ -98,15 +98,29 @@ Frames, from **User > RTM tools > Frame > ...** or typed (the grid steps need R)
 . rtmframe split using rtm_grid.gpkg, cells(60) parts(2) raster(rtm_population.tif) clear
 ```
 
-`help rtmtools`, `help rtmweight`, `help rtmsample`, `help rtmframe` and `help rtmest` describe
-every option, its cited default and its limits.
+## Live dashboard
+
+Every command logs its start, progress, results and errors to `rtmtools_runs.js` in the working
+folder. `rtmtools_dashboard` (also under **User > RTM tools**) writes a self-contained page next to
+it and opens it in the browser; the page refreshes itself every few seconds while a do-file runs,
+showing the progress of each workflow, the results and charts of every run, and the commands to
+reproduce them. It reads only the two local files. `rtmtools_dashboard, off` stops the logging,
+`clear` starts a new log.
+
+```
+. rtmtools_dashboard
+. do weights_round_12.do
+```
+
+`help rtmtools`, `help rtmweight`, `help rtmsample`, `help rtmframe`, `help rtmest` and
+`help rtmtools_dashboard` describe every option, its cited default and its limits.
 
 ## Status (24 October 2026)
 
-Version 0.3.0 holds the weighting and estimation workflow (Step 2 of the build plan, 24 October
+Version 0.4.0 holds the weighting and estimation workflow (Step 2 of the build plan, 24 October
 2026), the sample design workflow (`rtmsample`) and the frame workflow (`rtmframe` with
-`rtmsample grid`), the last two added the same day after the author's go-ahead. All ten test
-files pass on Stata 18 with R 4.3.1, ReGenesees 2.5, sf 1.0.15, terra 1.7.71 and spsurvey 5.5.1.
+`rtmsample grid`), the last two added the same day after the author's go-ahead, and the live
+dashboard of the runs. All eleven test files pass on Stata 18 with R 4.3.1, ReGenesees 2.5, sf 1.0.15, terra 1.7.71 and spsurvey 5.5.1.
 The dialogs passed static checks only; they have not yet been opened in the Stata GUI. See `VALIDATION.md` (what was
 checked and the figures), `USABILITY.md` (the new-user passes and the fixes they led to) and
 `OPEN_ITEMS.md` (questions for the handbook's author, dependencies, what is untested).

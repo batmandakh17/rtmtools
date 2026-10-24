@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>rtmtools dashboard</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1c2430;--muted:#5b6673;--line:#e1e5ea;--accent:#1f5f99;--ok:#1b8a4a;--run:#c77d00;--err:#b3261e;--chip:#eef2f6;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121619;--card:#1b2126;--ink:#e6eaee;--muted:#9aa5b1;--line:#2b343c;--accent:#7fb3e6;--ok:#4cc477;--run:#f0b03f;--err:#ff7b72;--chip:#242c34}}
+:root[data-theme="dark"]{--bg:#121619;--card:#1b2126;--ink:#e6eaee;--muted:#9aa5b1;--line:#2b343c;--accent:#7fb3e6;--ok:#4cc477;--run:#f0b03f;--err:#ff7b72;--chip:#242c34}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+header h1{font-size:18px;margin:0;font-weight:650}
+.live{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--muted)}
+.dot.on{background:var(--ok)}
+.dot.run{background:var(--run);animation:pulse 1s infinite}
+@keyframes pulse{0%{opacity:1}50%{opacity:.3}100%{opacity:1}}
+.controls{margin-left:auto;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+button,.chip{border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:4px 11px;font-size:13px;cursor:pointer}
+.chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+main{max-width:1200px;margin:0 auto;padding:16px}
+section{margin-bottom:22px}
+h2{font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:0 0 10px}
+.flows{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.flow{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.flow h3{margin:0 0 8px;font-size:14px}
+.steps{display:flex;flex-wrap:wrap;gap:6px}
+.step{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:8px;border:1px solid var(--line);font-size:13px;color:var(--muted)}
+.step .mark{width:9px;height:9px;border-radius:50%;background:var(--line)}
+.step.done{color:var(--ink)}.step.done .mark{background:var(--ok)}
+.step.running .mark{background:var(--run);animation:pulse 1s infinite}
+.step.error{color:var(--err)}.step.error .mark{background:var(--err)}
+.step.stopped .mark{background:var(--run)}
+.cards{display:grid;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.card .head{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:baseline}
+.card .tool{font-weight:650;font-size:15px}
+.badge{font-size:12px;padding:2px 8px;border-radius:999px;color:#fff;background:var(--muted)}
+.badge.done{background:var(--ok)}.badge.running{background:var(--run)}.badge.error{background:var(--err)}.badge.stopped{background:var(--run)}
+.meta{color:var(--muted);font-size:13px}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 14px;margin:10px 0}
+.kv div{font-size:13px;color:var(--muted)}
+.kv b{display:block;font-size:16px;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+pre{font-family:var(--mono);font-size:12.5px;background:var(--chip);border-radius:8px;padding:8px 10px;overflow:auto;margin:8px 0;white-space:pre-wrap;word-break:break-word}
+details summary{cursor:pointer;color:var(--accent);font-size:13px}
+table{border-collapse:collapse;font-size:13px;margin:6px 0;max-width:100%;display:block;overflow:auto}
+th,td{border-bottom:1px solid var(--line);padding:3px 8px;text-align:right;font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left}
+svg text{font:11px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;fill:var(--muted)}
+.empty{color:var(--muted);padding:30px;text-align:center;border:1px dashed var(--line);border-radius:12px}
+.progress{color:var(--muted);font-size:13px;margin:4px 0}
+textarea{width:100%;min-height:140px;font-family:var(--mono);font-size:12.5px;background:var(--chip);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px}
+footer{color:var(--muted);font-size:12px;text-align:center;padding:14px}
+@media (max-width:600px){header{padding:8px 12px}main{padding:12px}.kv b{font-size:15px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>rtmtools dashboard</h1>
+  <span class="live"><span class="dot" id="dot"></span><span id="status">loading the run log</span></span>
+  <div class="controls">
+    <span class="chip active" data-f="all">All</span>
+    <span class="chip" data-f="frame">Frame</span>
+    <span class="chip" data-f="sample">Sample</span>
+    <span class="chip" data-f="weights">Weights</span>
+    <span class="chip" data-f="estimate">Estimation</span>
+    <span class="chip" data-f="errors">Errors</span>
+    <button id="pause">Pause refresh</button>
+    <button id="theme">Theme</button>
+  </div>
+</header>
+<main>
+  <section><h2>Workflow progress</h2><div class="flows" id="flows"></div></section>
+  <section><h2>Runs, newest first</h2><div class="cards" id="cards"></div></section>
+  <section><h2>Commands to reproduce (done runs, in order)</h2>
+    <textarea id="repro" readonly></textarea>
+    <div style="margin-top:6px;display:flex;gap:6px"><button id="copyrepro">Copy</button><button id="dlrepro">Download as rtmtools_reproduce.do</button></div>
+  </section>
+</main>
+<footer id="foot">Reads the local run log only; nothing is sent anywhere.</footer>
+<script>var RTM_RUNS = []; var RTM_LOG_FILE = "rtmtools_runs.js"; var RTM_FOLDER = "";</script>
+<script src="rtmtools_dashboard_config.js" onerror="void 0"></script>
+<script>
+(function(){
+'use strict';
+var WORKFLOWS=[
+ {id:'frame',name:'Frame',steps:['rtmframe list','rtmframe grid','rtmframe replace','rtmframe split']},
+ {id:'sample',name:'Sample design',steps:['rtmsample size','rtmsample allocate','rtmsample draw','rtmsample grid']},
+ {id:'weights',name:'Weights',steps:['rtmweight base','rtmweight nonresponse','rtmweight trim','rtmweight calibrate','rtmweight report']},
+ {id:'estimate',name:'Estimation',steps:['rtmest']}
+];
+var KEYS={
+ 'rtmsample size':[['n_srs','SRS interviews'],['n_deff','after deff'],['n_select','to select'],['n_panel','with attrition reserve'],['n_domain','per domain'],['n_total','total']],
+ 'rtmsample allocate':[['n','total n'],['H','strata'],['N','frame size'],['n_bounded','strata at a bound']],
+ 'rtmsample draw':[['N_frame','frame units'],['n_selected','selected'],['n_certainty','certainty'],['n_reserve','reserve'],['H','strata'],['seed','seed']],
+ 'rtmsample grid':[['n_selected','base sample'],['n_reserve','ordered replacements'],['n_near','nearest neighbours'],['H','strata'],['seed','seed']],
+ 'rtmframe list':[['N','units'],['N_ok','usable'],['n_dup','duplicate ids'],['n_badsize','bad sizes'],['n_small','small'],['n_large','large'],['n_excluded','excluded'],['n_combined_units','combined units']],
+ 'rtmframe grid':[['N_cells','cells'],['pop_total','size in frame'],['pop_boundaries','size in boundaries'],['dropped','cells dropped'],['H','strata'],['cellsize','cell size (m)'],['epsg','EPSG']],
+ 'rtmframe replace':[['N_cells','cells to replace'],['N_candidates','candidates']],
+ 'rtmframe split':[['N_parts','parts'],['parts','parts per side']],
+ 'rtmweight base':[['N','units'],['sum','sum of weights'],['sum_baseline','baseline sum'],['factor_min','factor min'],['factor_max','factor max'],['kish','Kish 1+CV2']],
+ 'rtmweight nonresponse':[['N_sample','sample'],['N_resp','respondents'],['rr_unweighted','response rate'],['rr_weighted','weighted rate'],['sum_base','sum before'],['sum_adj','sum after'],['factor_min','factor min'],['factor_p50','factor median'],['factor_max','factor max'],['pseudo_r2','pseudo R2']],
+ 'rtmweight trim':[['N','units'],['n_trimmed_high','lowered'],['n_trimmed_low','raised'],['kish_before','Kish before'],['kish_after','Kish after'],['sum','sum of weights']],
+ 'rtmweight calibrate':[['N_pop','population'],['max_rel_diff','largest gap to totals'],['g_min','g min'],['g_p50','g median'],['g_max','g max'],['kish_before','Kish before'],['kish_after','Kish after'],['sum_after','sum after']],
+ 'rtmweight report':[['max_rel_diff','largest gap to totals']],
+ 'rtmest':[['n_singleton_strata','singleton strata']]
+};
+var CHART={
+ 'rtmweight nonresponse':{m:'groups',col:'resp_rate',title:'Response rate by propensity group',col2:'factor',title2:'Adjustment factor by group'},
+ 'rtmsample draw':{m:'table',col:'n',title:'Units selected by stratum'},
+ 'rtmsample grid':{m:'table',col:'n',title:'Base sample by stratum'},
+ 'rtmsample allocate':{m:'alloc',col:'n_h',title:'Allocation by stratum'},
+ 'rtmframe grid':{m:'table',col:'size_total',title:'Measure of size by stratum'},
+ 'rtmframe list':{m:'table',col:'size_total',title:'Size of the usable units by stratum'},
+ 'rtmweight report':{m:'summary',col:'kish',title:'Kish 1+CV2 by weighting stage'},
+ 'rtmest':{m:'table',ci:true,title:'Estimates with 95% confidence intervals'}
+};
+var filter='all', paused=false, lastCount=-1, openDetails={};
+function wf(tool){for(var i=0;i<WORKFLOWS.length;i++){if(WORKFLOWS[i].steps.indexOf(tool)>=0)return WORKFLOWS[i].id;}return 'other';}
+function fmt(v){if(v===null||v===undefined||v!==v)return '.';if(typeof v!=='number')return String(v);var a=Math.abs(v);if(Number.isInteger(v))return v.toLocaleString('en-US');if(a>=1000)return v.toLocaleString('en-US',{maximumFractionDigits:1});if(a>=1)return v.toLocaleString('en-US',{maximumFractionDigits:3});return v.toPrecision(3).replace(/\.?0+$/,'');}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function buildRuns(ev){var runs=[],open=null;for(var i=0;i<ev.length;i++){var e=ev[i];if(e.event==='start'){if(open)open.status='stopped';open={tool:e.tool,cmd:e.cmd,t0:e.ts,status:'running',dataset:e.dataset,N:e.N,progress:[],results:{},matrices:{}};runs.push(open);}else if(e.event==='done'||e.event==='error'){var r=(open&&open.tool===e.tool)?open:null;if(!r){r={tool:e.tool,cmd:e.cmd,t0:e.ts,progress:[],results:{},matrices:{}};runs.push(r);}r.status=e.event==='done'?'done':'error';r.t1=e.ts;r.seconds=e.seconds;r.rc=e.rc;r.results=e.results||{};r.matrices=e.matrices||{};r.dataset=e.dataset;r.N=e.N;open=null;}else if(e.event==='progress'&&open){open.progress.push({ts:e.ts,msg:e.msg});}}return runs;}
+function hhmm(ts){return ts?ts.replace('T',' '):'';}
+function matrix(run,name){return run.matrices&&run.matrices[name]?run.matrices[name]:null;}
+function barChart(labels,values,title){var n=values.length;if(!n)return '';var w=Math.min(720,Math.max(260,n*44+60)),h=150,pad={l:44,r:8,t:22,b:36};var max=Math.max.apply(null,values.filter(function(v){return v!=null;}).concat([0]));if(max<=0)max=1;var bw=(w-pad.l-pad.r)/n;var s='<svg viewBox="0 0 '+w+' '+h+'" width="100%" style="max-width:'+w+'px" role="img" aria-label="'+esc(title)+'">';s+='<text x="'+pad.l+'" y="14">'+esc(title)+'</text>';for(var g=0;g<=4;g++){var y=pad.t+(h-pad.t-pad.b)*(1-g/4);s+='<line x1="'+pad.l+'" x2="'+(w-pad.r)+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)"/><text x="'+(pad.l-4)+'" y="'+(y+4)+'" text-anchor="end">'+fmt(max*g/4)+'</text>';}for(var i=0;i<n;i++){var v=values[i]==null?0:values[i];var bh=(h-pad.t-pad.b)*v/max;var x=pad.l+i*bw+bw*0.15;s+='<rect x="'+x+'" y="'+(h-pad.b-bh)+'" width="'+(bw*0.7)+'" height="'+bh+'" rx="3" fill="var(--accent)"><title>'+esc(labels[i])+': '+fmt(values[i])+'</title></rect>';if(n<=16)s+='<text x="'+(x+bw*0.35)+'" y="'+(h-pad.b+14)+'" text-anchor="middle">'+esc(String(labels[i]).slice(0,10))+'</text>';}return s+'</svg>';}
+function ciChart(rows,M){var ie=M.cols.indexOf('estimate'),il=M.cols.indexOf('ci_low'),ih=M.cols.indexOf('ci_high');if(ie<0)return '';var n=rows.length,w=720,rh=22,pad={l:170,r:16,t:22,b:24},h=pad.t+pad.b+n*rh;var lo=Infinity,hi=-Infinity;for(var i=0;i<n;i++){var v=M.values[i];lo=Math.min(lo,v[il!=null&&il>=0?il:ie]);hi=Math.max(hi,v[ih>=0?ih:ie]);}if(!(hi>lo)){lo-=1;hi+=1;}var x=function(v){return pad.l+(w-pad.l-pad.r)*(v-lo)/(hi-lo);};var s='<svg viewBox="0 0 '+w+' '+h+'" width="100%" style="max-width:'+w+'px"><text x="'+pad.l+'" y="14">Estimates with 95% confidence intervals</text>';for(var i=0;i<n;i++){var v=M.values[i],y=pad.t+i*rh+rh/2;s+='<text x="'+(pad.l-6)+'" y="'+(y+4)+'" text-anchor="end">'+esc(rows[i])+'</text>';if(il>=0&&ih>=0&&v[il]!=null&&v[ih]!=null)s+='<line x1="'+x(v[il])+'" x2="'+x(v[ih])+'" y1="'+y+'" y2="'+y+'" stroke="var(--accent)" stroke-width="2"/>';s+='<circle cx="'+x(v[ie])+'" cy="'+y+'" r="4" fill="var(--accent)"><title>'+esc(rows[i])+': '+fmt(v[ie])+'</title></circle>';}s+='<text x="'+pad.l+'" y="'+(h-6)+'">'+fmt(lo)+'</text><text x="'+(w-pad.r)+'" y="'+(h-6)+'" text-anchor="end">'+fmt(hi)+'</text></svg>';return s;}
+function chartFor(run){var c=CHART[run.tool];if(!c)return '';var M=matrix(run,c.m);if(!M)return '';if(c.ci)return ciChart(M.rows,M);var j=M.cols.indexOf(c.col);if(j<0)return '';var vals=M.values.map(function(r){return r[j];});var out=barChart(M.rows,vals,c.title);if(c.col2){var j2=M.cols.indexOf(c.col2);if(j2>=0)out+=barChart(M.rows,M.values.map(function(r){return r[j2];}),c.title2);}return out;}
+function tableHtml(name,M){var s='<table><caption style="text-align:left;color:var(--muted)">r('+esc(name)+')</caption><tr><th></th>';M.cols.forEach(function(c){s+='<th>'+esc(c)+'</th>';});s+='</tr>';M.values.forEach(function(row,i){s+='<tr><td>'+esc(M.rows[i])+'</td>';row.forEach(function(v){s+='<td>'+fmt(v)+'</td>';});s+='</tr>';});return s+'</table>';}
+function keyGrid(run){var keys=KEYS[run.tool],s='<div class="kv">',used={};if(keys){keys.forEach(function(k){if(run.results[k[0]]!==undefined){used[k[0]]=1;s+='<div>'+esc(k[1])+'<b>'+fmt(run.results[k[0]])+'</b></div>';}});}var rest=Object.keys(run.results).filter(function(k){return !used[k]&&typeof run.results[k]==='number';});if(!keys)rest.slice(0,10).forEach(function(k){s+='<div>'+esc(k)+'<b>'+fmt(run.results[k])+'</b></div>';});return s+'</div>';}
+function card(run,idx){var s='<div class="card" data-wf="'+wf(run.tool)+'" data-status="'+run.status+'">';s+='<div class="head"><span class="badge '+run.status+'">'+(run.status==='error'?'failed (rc '+run.rc+')':run.status)+'</span><span class="tool">'+esc(run.tool)+'</span>';s+='<span class="meta">'+hhmm(run.t0)+(run.seconds!=null?' · '+fmt(run.seconds)+' s':'')+(run.dataset?' · '+esc(run.dataset):'')+(run.N!=null?' · N = '+fmt(run.N):'')+'</span></div>';if(run.status==='done')s+=keyGrid(run);run.progress.forEach(function(p){s+='<div class="progress">'+esc(p.ts.slice(11))+' '+esc(p.msg)+'</div>';});if(run.status==='running')s+='<div class="progress">running ...</div>';if(run.status==='stopped')s+='<div class="progress">no result was logged: the command stopped with an error that was not caught, or is still running</div>';var ch=run.status==='done'?chartFor(run):'';if(ch)s+='<div>'+ch+'</div>';s+='<pre>'+esc(run.cmd)+'</pre>';var mats=Object.keys(run.matrices||{});var macros=Object.keys(run.results||{}).filter(function(k){return typeof run.results[k]!=='number';});if(mats.length||macros.length){s+='<details'+(openDetails[idx]?' open':'')+' data-i="'+idx+'"><summary>all results</summary>';macros.forEach(function(k){if(k!=='cmdline')s+='<div class="meta">'+esc(k)+': '+esc(run.results[k])+'</div>';});var nums=Object.keys(run.results).filter(function(k){return typeof run.results[k]==='number';});if(nums.length){s+='<div class="kv">';nums.forEach(function(k){s+='<div>'+esc(k)+'<b>'+fmt(run.results[k])+'</b></div>';});s+='</div>';}mats.forEach(function(m){s+=tableHtml(m,run.matrices[m]);});s+='</details>';}return s+'</div>';}
+function flows(runs){var latest={};runs.forEach(function(r){latest[r.tool]=r;});var s='';WORKFLOWS.forEach(function(w){s+='<div class="flow"><h3>'+w.name+'</h3><div class="steps">';w.steps.forEach(function(t){var r=latest[t];var st=r?r.status:'none';s+='<span class="step '+st+'" title="'+esc(r?r.cmd:'not run yet')+'"><span class="mark"></span>'+esc(t.replace(/^rtm(weight|sample|frame) /,''))+(r&&r.status==='done'&&r.t1?' <span class="meta">'+r.t1.slice(11,16)+'</span>':'')+'</span>';});s+='</div></div>';});return s;}
+function render(){var runs=buildRuns(RTM_RUNS);document.getElementById('flows').innerHTML=flows(runs);var vis=runs.filter(function(r){if(filter==='all')return true;if(filter==='errors')return r.status==='error'||r.status==='stopped';return wf(r.tool)===filter;});var cards=document.getElementById('cards');if(!runs.length){cards.innerHTML='<div class="empty">No runs yet. Run an rtmtools command in the folder of this page (or in the folder set with rtmtools_dashboard, file()) and it will appear here within a few seconds.</div>';}else if(!vis.length){cards.innerHTML='<div class="empty">No runs match the filter.</div>';}else{cards.innerHTML=vis.slice().reverse().map(function(r){return card(r,runs.indexOf(r));}).join('');}Array.prototype.forEach.call(cards.querySelectorAll('details'),function(d){d.addEventListener('toggle',function(){openDetails[d.getAttribute('data-i')]=d.open;});});var repro=runs.filter(function(r){return r.status==='done';}).map(function(r){return r.cmd;}).join('\n');document.getElementById('repro').value=repro;var running=runs.some(function(r){return r.status==='running';});var dot=document.getElementById('dot');dot.className='dot '+(running?'run':(runs.length?'on':''));var last=runs.length?runs[runs.length-1]:null;document.getElementById('status').textContent=(running?'running: '+last.tool:(runs.length?runs.length+' runs, last '+hhmm(last.t1||last.t0):'waiting for runs'))+(paused?' · refresh paused':'')+' · updated '+new Date().toLocaleTimeString();document.getElementById('foot').textContent='Reads '+RTM_LOG_FILE+(RTM_FOLDER?' in '+RTM_FOLDER:'')+' every 3 seconds; nothing is sent anywhere. rtmtools, Real-Time Monitoring Survey Handbook.';}
+function load(){var old=document.getElementById('rtmlog');if(old)old.parentNode.removeChild(old);RTM_RUNS=[];var s=document.createElement('script');s.id='rtmlog';s.src=RTM_LOG_FILE+'?t='+Date.now();s.onload=function(){render();};s.onerror=function(){RTM_RUNS=[];render();document.getElementById('status').textContent='no run log found ('+RTM_LOG_FILE+'): run rtmtools_dashboard in Stata in the working folder';};document.body.appendChild(s);}
+Array.prototype.forEach.call(document.querySelectorAll('.chip'),function(c){c.addEventListener('click',function(){filter=c.getAttribute('data-f');Array.prototype.forEach.call(document.querySelectorAll('.chip'),function(x){x.classList.toggle('active',x===c);});render();});});
+document.getElementById('pause').addEventListener('click',function(){paused=!paused;this.textContent=paused?'Resume refresh':'Pause refresh';render();});
+document.getElementById('theme').addEventListener('click',function(){var r=document.documentElement;var cur=r.getAttribute('data-theme');var dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var now=cur?cur:(dark?'dark':'light');r.setAttribute('data-theme',now==='dark'?'light':'dark');try{localStorage.setItem('rtm_theme',r.getAttribute('data-theme'));}catch(e){}});
+try{var t=localStorage.getItem('rtm_theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}
+document.getElementById('copyrepro').addEventListener('click',function(){var ta=document.getElementById('repro');ta.select();try{navigator.clipboard.writeText(ta.value);}catch(e){document.execCommand('copy');}});
+document.getElementById('dlrepro').addEventListener('click',function(){var blob=new Blob([document.getElementById('repro').value+'\n'],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='rtmtools_reproduce.do';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);});
+load();
+setInterval(function(){if(!paused&&!document.hidden)load();},3000);
+})();
+</script>
+</body>
+</html>

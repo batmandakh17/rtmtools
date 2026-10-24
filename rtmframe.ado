@@ -17,6 +17,14 @@ program define rtmframe, rclass
         di as err "rtmframe: unknown subcommand `sub'; use list, grid, replace or split"
         exit 198
     }
-    rtmframe_`full' `0'
+    capture _rtm_log start, tool("rtmframe `full'") cmd(`"rtmframe `full' `0'"')
+    capture noisily rtmframe_`full' `0'
+    local rc = _rc
+    if `rc' {
+        capture _rtm_log error, tool("rtmframe `full'") cmd(`"rtmframe `full' `0'"') rc(`rc')
+        exit `rc'
+    }
+    * log first: return add empties the live r() that the log reads
+    capture _rtm_log done, tool("rtmframe `full'") cmd(`"rtmframe `full' `0'"')
     return add
 end

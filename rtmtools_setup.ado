@@ -130,6 +130,7 @@ program define _rtmtools_menu
     window menu append item "Sample" "Spatially balanced draw from a grid frame (needs R)..." "db rtmsample_grid"
     window menu append item "RTM tools" "Estimate with the design..." "db rtmest"
     window menu append separator "RTM tools"
+    window menu append item "RTM tools" "Live dashboard of the runs" "rtmtools_dashboard"
     window menu append item "RTM tools" "Check R and dependencies" "rtmtools_setup, check nomenu"
     window menu append item "RTM tools" "Help and about rtmtools" "help rtmtools"
     window menu refresh

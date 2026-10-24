@@ -1,4 +1,4 @@
-*! _rtm_util.ado  version 0.3.0  24oct2026  rtmtools
+*! _rtm_util.ado  version 0.4.0  24oct2026  rtmtools
 *! Shared helpers: version stamp, dataset notes and characteristics, weight summaries,
 *! new-variable checks. Called by the rtmweight, rtmest and rtmtools_setup programs.
 
@@ -11,8 +11,8 @@ end
 * ---- version string of the package ---------------------------------------------------------
 program define _rtm_util_version, rclass
     version 16
-    return local pkgversion "0.3.0"
-    return local stamp "rtmtools 0.3.0, Stata `c(stata_version)' (`c(flavor)'), `c(current_date)' `c(current_time)'"
+    return local pkgversion "0.4.0"
+    return local stamp "rtmtools 0.4.0, Stata `c(stata_version)' (`c(flavor)'), `c(current_date)' `c(current_time)'"
 end
 
 * ---- record a step in the dataset: a characteristic and a note -----------------------------

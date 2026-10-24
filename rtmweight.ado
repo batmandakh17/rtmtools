@@ -19,6 +19,14 @@ program define rtmweight, rclass
         di as err "rtmweight: unknown subcommand {bf:`sub'}; use base, nonresponse, calibrate, trim or report"
         exit 198
     }
-    rtmweight_`full' `0'
+    capture _rtm_log start, tool("rtmweight `full'") cmd(`"rtmweight `full' `0'"')
+    capture noisily rtmweight_`full' `0'
+    local rc = _rc
+    if `rc' {
+        capture _rtm_log error, tool("rtmweight `full'") cmd(`"rtmweight `full' `0'"') rc(`rc')
+        exit `rc'
+    }
+    * log first: return add empties the live r() that the log reads
+    capture _rtm_log done, tool("rtmweight `full'") cmd(`"rtmweight `full' `0'"')
     return add
 end

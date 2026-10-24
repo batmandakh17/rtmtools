@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.3.0  24oct2026  rtmtools}{...}
+{* *! version 0.4.0  24oct2026  rtmtools}{...}
 {vieweralsosee "rtmweight" "help rtmweight"}{...}
 {vieweralsosee "rtmsample" "help rtmsample"}{...}
 {vieweralsosee "rtmframe" "help rtmframe"}{...}
@@ -15,13 +15,14 @@
 
 {pstd}
 {cmd:rtmtools} gives task teams and survey firms Stata commands, with dialog boxes under
-{bf:User > RTM tools}, for the statistical design work around a phone panel. Version 0.3.0
+{bf:User > RTM tools}, for the statistical design work around a phone panel. Version 0.4.0
 covers:
 
 {phang2}{helpb rtmweight}: base weights, nonresponse and attrition adjustment, trimming, calibration to population totals, and a weighting report (Excel and Word).{p_end}
 {phang2}{helpb rtmest}: design-based estimates (means, proportions, totals, ratios) by domain with standard errors, design effects and coefficients of variation, with the calibration in the variance.{p_end}
 {phang2}{helpb rtmsample}: sample size per domain (level or change, with design effect, nonresponse and attrition reserve), allocation across strata, and probability draws from a frame (simple random, systematic, PPS) with inclusion probabilities, design weights, reserve units and a recorded seed.{p_end}
 {phang2}{helpb rtmframe}: checks on a list frame of areas; grid frames from boundary files and a population raster (R), with replacement cells and splits of large cells; the spatially balanced draw from a grid frame is {helpb rtmsample##grid:rtmsample grid} (R, spsurvey).{p_end}
+{phang2}{helpb rtmtools_dashboard}: a live web page of the runs, refreshed while a do-file runs: workflow progress, results and charts of every command, and the commands to reproduce them.{p_end}
 {phang2}{helpb rtmtools_setup}: the menu, dependency checks and the R check.{p_end}
 
 {pstd}
@@ -44,6 +45,7 @@ and {cmd:r()}, and the dialogs write the full command to the Review window.
 {phang2}{cmd:. rtmtools_setup}{p_end}
 {phang2}{cmd:. rtmtools_setup, profile}      {it:(menu at every start)}{p_end}
 {phang2}{cmd:. net get rtmtools}            {it:(sample data into the current folder)}{p_end}
+{phang2}{cmd:. rtmtools_dashboard}        {it:(the live dashboard in the browser)}{p_end}
 {phang2}{cmd:. help rtmweight}{p_end}
 
 {pstd}

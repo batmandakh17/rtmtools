@@ -9,6 +9,21 @@
 *! Munoz 1996 (pp. 71, 166). Calibration in the variance: svyset rake()/regress() (Stata 15.1+).
 program define rtmest, rclass
     version 16
+    * wrapper: logs the run for the live dashboard (rtmtools_dashboard), then hands over
+    capture _rtm_log start, tool("rtmest") cmd(`"rtmest `0'"')
+    capture noisily rtmest_main `0'
+    local rc = _rc
+    if `rc' {
+        capture _rtm_log error, tool("rtmest") cmd(`"rtmest `0'"') rc(`rc')
+        exit `rc'
+    }
+    * log first: return add empties the live r() that the log reads
+    capture _rtm_log done, tool("rtmest") cmd(`"rtmest `0'"')
+    return add
+end
+
+program define rtmest_main, rclass
+    version 16
     syntax varlist(numeric) [if] [in], WEIGHTvar(varname numeric) ///
         [STRata(varname) PSU(varname) FPC(varname) SINGLEunit(string) VCE(string) OVER(varname) ///
          STAT(string) RATIO(varlist numeric min=2 max=2) CVflag(real 30) LEVEL(cilevel) ///

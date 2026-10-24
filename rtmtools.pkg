@@ -71,6 +71,10 @@ F rtmest.ado
 F rtmest.sthlp
 F rtmest.dlg
 F _rtm_util.ado
+F _rtm_log.ado
+F rtmtools_dashboard.ado
+F rtmtools_dashboard.sthlp
+F rtmtools_dashboard.html
 F _rtm_runr.ado
 f data/rtm_baseline.dta
 f data/rtm_round1.dta
