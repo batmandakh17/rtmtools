@@ -334,25 +334,4 @@ program define _rtmsample_syspass
     quietly replace `pi' = `nrem' * `size' / `ssum' if `elig' & !`cert' & `nrem' > 0
 end
 
-* ---- a readable label per observation from the strata variables ----
-program define _rtmsample_label
-    syntax [varlist(default=none)], touse(varname) generate(name)
-    quietly gen str244 `generate' = ""
-    if "`varlist'" == "" {
-        quietly replace `generate' = "all" if `touse'
-        exit
-    }
-    local k 0
-    foreach v of local varlist {
-        local ++k
-        tempvar part
-        capture confirm string variable `v'
-        if !_rc quietly gen str244 `part' = `v'
-        else {
-            local vl : value label `v'
-            if "`vl'" != "" quietly decode `v', gen(`part')
-            else quietly gen str244 `part' = string(`v')
-        }
-        quietly replace `generate' = `generate' + cond(`k' > 1, " ", "") + `part' if `touse'
-    }
-end
+* the per-observation stratum label is built by _rtmsample_label.ado (its own file, shared with rtmframe)

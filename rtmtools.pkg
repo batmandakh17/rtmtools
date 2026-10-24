@@ -4,10 +4,13 @@ d
 d rtmtools gives task teams Stata commands with dialog boxes (User > RTM tools) for
 d the weights of a phone panel round (base weights, nonresponse and attrition
 d adjustment, trimming, calibration to population totals, weighting report), for
-d design-based estimates with design effects and coefficients of variation, and for
-d sample sizes, allocation across strata and probability draws from a frame.
-d Statistical steps run through svycal, svyset and svy, survwgt and ipfraking;
-d the ReGenesees calibration features run through R in the background, optional.
+d design-based estimates with design effects and coefficients of variation, for
+d sample sizes, allocation across strata and probability draws from a frame, and for
+d frames of areas: checks on a list frame, grid frames from boundaries and population
+d rasters, replacement cells and splits, with spatially balanced (GRTS) draws.
+d Statistical steps run through svycal, svyset, svy and power, survwgt, ipfraking and
+d gsample; the ReGenesees calibration features and the spatial steps (sf, terra,
+d spsurvey) run through R in the background, optional.
 d Method defaults cite the HFPS sampling guidelines (Himelein et al. 2020), the
 d Listening to Tajikistan methods report, Ambel et al. 2021 and UN 2008.
 d
@@ -48,6 +51,22 @@ F rtmsample_allocate.ado
 F rtmsample_allocate.dlg
 F rtmsample_draw.ado
 F rtmsample_draw.dlg
+F rtmframe.ado
+F rtmframe.sthlp
+F rtmframe_list.ado
+F rtmframe_list.dlg
+F rtmframe_grid.ado
+F rtmframe_grid.dlg
+F rtmframe_replace.ado
+F rtmframe_replace.dlg
+F rtmframe_split.ado
+F rtmframe_split.dlg
+F rtmsample_grid.ado
+F rtmsample_grid.dlg
+F rtm_grid.R
+F rtm_grts.R
+F rtm_cells.R
+F _rtmsample_label.ado
 F rtmest.ado
 F rtmest.sthlp
 F rtmest.dlg
@@ -61,3 +80,6 @@ f data/rtm_totals_long.dta
 f data/rtm_totals_cells.dta
 f data/rtm_totals_region.dta
 f data/make_rtm_synthetic.do
+f data/rtm_boundaries.gpkg
+f data/rtm_population.tif
+f data/make_rtm_spatial.R

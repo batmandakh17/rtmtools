@@ -1,16 +1,19 @@
 # rtmtools
 
 Stata tools, with dialog boxes under **User > RTM tools**, for the statistical design work
-around a real-time monitoring phone panel. Version 0.2.0 covers two workflows: the weights
+around a real-time monitoring phone panel. Version 0.3.0 covers three workflows: the weights
 of a round (`rtmweight`: base weights, nonresponse and attrition adjustment, trimming,
-calibration, report) with design-based estimation (`rtmest`), and the sample design
+calibration, report) with design-based estimation (`rtmest`); the sample design
 (`rtmsample`: sample size per domain, allocation across strata, probability draws from a frame
-with inclusion probabilities, design weights and reserve units). Frames, listing support and
+with inclusion probabilities, design weights and reserve units, spatially balanced draws from a
+grid frame); and frames of areas (`rtmframe`: checks on a list frame, grid frames from boundary
+files and a population raster, replacement cells, splits of large cells). Listing support and
 small-area estimation follow in later versions (see `PROPOSAL.md`).
 
-Users are task team members and survey firm staff who know Stata. R is not required: the
-only steps that use it (the ReGenesees calibration features) run in the background and are
-optional.
+Users are task team members and survey firm staff who know Stata. R is not required for the
+list-frame, weighting, estimation and list-based sampling steps. The steps that use it run in the
+background and are optional: the ReGenesees calibration features, the grid frames (sf, terra)
+and the spatially balanced draws (spsurvey).
 
 ## Install
 
@@ -40,12 +43,13 @@ Then run the setup once:
 
 ## Optional R setup
 
-Only `rtmweight calibrate, engine(regenesees)` needs R (for the logit distance, exact bounds,
-constrained trimming and cluster-constant weights). Install R from https://cran.r-project.org,
-then in R:
+R is needed for `rtmweight calibrate, engine(regenesees)` (logit distance, exact bounds,
+constrained trimming, cluster-constant weights), for `rtmframe grid`, `rtmframe replace` and
+`rtmframe split` (sf, terra) and for `rtmsample grid` (spsurvey). Install R from
+https://cran.r-project.org, then in R:
 
 ```
-install.packages(c("haven", "remotes"))
+install.packages(c("haven", "remotes", "sf", "terra", "spsurvey"))
 remotes::install_github("DiegoZardetto/ReGenesees")
 ```
 
@@ -83,8 +87,19 @@ Sample design, from **User > RTM tools > Sample > ...** or typed:
 . rtmweight base if hh_sel == 1, probability(ea_pi hh_pi) generate(w_base)
 ```
 
-`help rtmtools`, `help rtmweight`, `help rtmsample` and `help rtmest` describe every option, its
-cited default and its limits.
+Frames, from **User > RTM tools > Frame > ...** or typed (the grid steps need R):
+
+```
+. use rtm_frame, clear
+. rtmframe list, id(ea_id) size(ea_size_census) strata(stratum) minsize(80) maxsize(250) merge(unit) sort(ea_id)
+. rtmframe grid using rtm_boundaries.gpkg, raster(rtm_population.tif) cellsize(10000) strata(region) saving(rtm_grid.gpkg) clear
+. rtmsample grid using rtm_grid.gpkg, n(5) strata(stratum) nover(2) seed(20261024) generate(g)
+. rtmframe replace using rtm_grid.gpkg, cells(45) selected(g_sel) clear
+. rtmframe split using rtm_grid.gpkg, cells(60) parts(2) raster(rtm_population.tif) clear
+```
+
+`help rtmtools`, `help rtmweight`, `help rtmsample`, `help rtmframe` and `help rtmest` describe
+every option, its cited default and its limits.
 
 ## Status (24 October 2026)
 

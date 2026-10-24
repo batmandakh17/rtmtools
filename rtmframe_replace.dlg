@@ -1,0 +1,89 @@
+/*
+  rtmframe_replace.dlg -- rtmtools 0.3.0 (24oct2026)
+  Dialog for: rtmframe replace (needs R with sf)
+*/
+
+VERSION 16.0
+
+INCLUDE _std_medium
+DEFINE _dlght 400
+INCLUDE header
+
+HELP hlp1, view("help rtmframe##replace")
+RESET res1
+
+DIALOG main, label("rtmframe replace - Replacement cells for areas that cannot be surveyed (needs R)") tabtitle("Main")
+BEGIN
+  TEXT     tx_f          _lft    _top    _iwd    .,			///
+	label("Grid frame file (GeoPackage written by rtmframe grid):")
+  FILE     fi_f          @       _ss     _iwd    .,			///
+	label("Browse...")						///
+	filter("GeoPackage (*.gpkg)|*.gpkg|All files (*.*)|*.*")
+  TEXT     tx_layer      _lft    _ms     200     .,			///
+	label("Layer (default cells):")
+  EDIT     ed_layer      210     @       120     .,			///
+	label("Layer")							///
+	option(layer)
+  TEXT     tx_id         _lft    _ms     200     .,			///
+	label("Cell identifier column:")
+  EDIT     ed_id         210     @       120     .,			///
+	label("Identifier")						///
+	default(cell_id)						///
+	option(id)
+  TEXT     tx_cells      _lft    _ls     _iwd    .,			///
+	label("Cells to replace (identifiers separated by spaces):")
+  EDIT     ed_cells      @       _ss     _iwd    .,			///
+	label("Cells")							///
+	option(cells)
+  TEXT     tx_excl       _lft    _ms     _iwd    .,			///
+	label("Cells that may not be used (identifiers, optional):")
+  EDIT     ed_excl       @       _ss     _iwd    .,			///
+	label("Excluded cells")						///
+	option(exclude)
+  TEXT     tx_sel        _lft    _ms     250     .,			///
+	label("Selection flag in the frame in memory (1 = already selected):")
+  VARNAME  vn_sel        270     @       130     .,			///
+	label("Selection flag")						///
+	option(selected)
+
+  GROUPBOX gb_adj        _lft    _xls    _iwd    70,			///
+	label("Adjacency")
+  RADIO    rb_queen      _ilft   _ss     _ibwd   ., first		///
+	label("Queen: cells sharing an edge or a corner")
+  RADIO    rb_rook       _ilft   _ms     _ibwd   ., last		///
+	label("Rook: cells sharing an edge")
+
+  TEXT     tx_save       _lft    +40     _iwd    .,			///
+	label("Save the candidates and the cells to replace as a GeoPackage (optional):")
+  FILE     fi_save       @       _ss     _iwd    .,			///
+	label("Browse...")						///
+	filter("GeoPackage (*.gpkg)|*.gpkg")				///
+	save								///
+	option(saving)
+  CHECKBOX ck_clear      _lft    _ms     _iwd    .,			///
+	label("Replace the data in memory with the candidate list (clear)")	///
+	default(1)							///
+	option(clear)
+END
+
+PROGRAM command
+BEGIN
+	put "rtmframe replace using "
+	require main.fi_f
+	put main.fi_f
+	beginoptions
+		require main.ed_cells
+		optionarg main.ed_cells
+		optionarg main.ed_excl
+		optionarg main.vn_sel
+		if main.rb_rook {
+			put " adjacency(rook)"
+		}
+		if !main.ed_id.isdefault() {
+			optionarg main.ed_id
+		}
+		optionarg main.ed_layer
+		optionarg main.fi_save
+		option main.ck_clear
+	endoptions
+END

@@ -38,9 +38,15 @@
 [{opt str:ata(varlist)} {opt meth:od(srs|systematic|pps|ppssys)} {opt pps(varname)} {opt sort(varlist)}
 {opt reserve(#|varname)} {opt seed(#)} {opt id(varlist)} {opt replace}]
 
+{p 8 16 2}
+{cmd:rtmsample} {cmd:grid} {cmd:using} {it:grid_file}{cmd:,} {opt n(#|varname)} {opt gen:erate(stub)}
+[{opt str:ata(name)} {opt aux(name)} {opt nover(#)} {opt nnear(#)} {opt mindis(#)} {opt seed(#)} {opt id(name)}
+{opt l:ayer(name)} {opt sav:ing(file)} {opt replace}]
+
 {pstd}
-Dialogs: {dialog rtmsample_size}, {dialog rtmsample_allocate}, {dialog rtmsample_draw}; or
-{bf:User > RTM tools > Sample} after {helpb rtmtools_setup}. Page numbers below are those of the
+Dialogs: {dialog rtmsample_size}, {dialog rtmsample_allocate}, {dialog rtmsample_draw}, {dialog rtmsample_grid}; or
+{bf:User > RTM tools > Sample} after {helpb rtmtools_setup}. {cmd:grid} runs R (spsurvey) in the
+background; the other subcommands are Stata only. Page numbers below are those of the
 PDF files of the cited documents; paragraph and formula numbers are the documents' own.
 
 
@@ -219,6 +225,37 @@ equal probabilities) and the Horvitz-Thompson estimate of the stratum's size (ex
 size under PPS), as checks.
 
 
+{marker grid}{...}
+{title:rtmsample grid: spatially balanced selection from a grid frame}
+
+{pstd}
+The frame in memory is a grid frame from {helpb rtmframe} {cmd:grid} (or any frame with a unit
+identifier, {opt id(name)}, default {cmd:cell_id}), and {it:grid_file} its GeoPackage. The command
+runs {cmd:grts()} of the R package spsurvey (Dumelle et al. 2023) on the cell centroids: the
+generalized random tessellation stratified design of Stevens and Olsen 2004 spreads the sample
+over space while keeping the inclusion probabilities, which gives a more precise sample than
+a simple random draw of cells when neighbouring cells are alike (HFPS Vol. 2 Annex 1 on
+balanced designs; the susospatsample README). {opt n(#)} is the base sample per stratum of
+{opt strata(name)} (or for the whole frame), or a variable constant within strata from
+{cmd:rtmsample allocate}. Inclusion probabilities are equal within strata, or proportional to
+{opt aux(name)} (the measure of size). {opt nover(#)} adds reverse-hierarchically ordered
+replacement sites per stratum, to be used in order; {opt nnear(#)} adds that many nearest
+neighbour replacements per base site; {opt mindis(#)} imposes a minimum distance between sites
+(metres). {opt seed(#)} is set right before the draw (a seed is drawn and reported if not given);
+the strata are passed to grts() in alphabetical order of their values, so a direct call in R with
+the same seed and that order repeats the draw.
+
+{pstd}
+The command writes {it:stub}{cmd:_sel} (1 for the base sample), {it:stub}{cmd:_pi} (spsurvey's inclusion
+probability), {it:stub}{cmd:_w} (its weight, 1/pi), {it:stub}{cmd:_order} (site number in the
+reverse hierarchical order, so that the first k sites are themselves a balanced sample),
+{it:stub}{cmd:_reserve} (rank among the ordered replacements of the stratum), {it:stub}{cmd:_near} (the
+base site a nearest-neighbour replacement stands for) and {it:stub}{cmd:_site} (spsurvey's site
+identifier). {opt saving(file)} writes the selected sites to a GeoPackage. The weights sum to
+the units of each stratum under equal probabilities; replacement sites carry no weight until used
+(UN 2008 paras 172 and 178 on substitution).
+
+
 {marker examples}{...}
 {title:Examples}
 
@@ -245,6 +282,12 @@ stratum; then the second stage, 12 households in each selected area from the hou
 {phang2}{cmd:. rtmsample draw, n(12) strata(ea_id) seed(20261025) generate(hh)}{p_end}
 {phang2}{cmd:. rtmweight base if hh_sel == 1, probability(ea_pi hh_pi) generate(w_base)}{p_end}
 
+{pstd}A spatially balanced sample of grid cells: five per region with two ordered replacements,
+then twelve cells with probabilities proportional to population and one nearest neighbour each{p_end}
+{phang2}{cmd:. rtmframe grid using rtm_boundaries.gpkg, raster(rtm_population.tif) cellsize(10000) strata(region) saving(rtm_grid.gpkg) clear}{p_end}
+{phang2}{cmd:. rtmsample grid using rtm_grid.gpkg, n(5) strata(stratum) nover(2) seed(20261024) generate(g)}{p_end}
+{phang2}{cmd:. rtmsample grid using rtm_grid.gpkg, n(12) aux(pop) nnear(1) seed(20261025) generate(p)}{p_end}
+
 
 {marker results}{...}
 {title:Stored results}
@@ -261,6 +304,9 @@ stratum), {cmd:r(N_frame)}, {cmd:r(n_selected)}, {cmd:r(n_reserve)}, {cmd:r(n_ce
 the dataset ({cmd:char _dta[rtm_draw]}, {cmd:char _dta[rtm_draw_seed]}, {cmd:notes}) and on
 {it:stub}{cmd:_sel} ({cmd:char} {it:stub}{cmd:_sel[rtm_cmd]}); {cmd:allocate} with generate() records
 likewise.{p_end}
+{pstd}{cmd:grid}: matrix {cmd:r(table)} (units, n, reserve, pi_min, pi_max, sum_w by stratum), {cmd:r(n_selected)},
+{cmd:r(n_reserve)}, {cmd:r(n_near)}, {cmd:r(H)}, {cmd:r(seed)}, {cmd:r(seltype)}, {cmd:r(cmdline)} (with the seed); recorded
+like {cmd:draw}.{p_end}
 
 
 {marker limits}{...}
@@ -272,8 +318,9 @@ design effect as given; the change case uses the independent-samples formula, wh
 for a panel (HFPS Vol. 2, p. 4, item 5; MPPS 2016 p. 45, item 7). Allocation does not take costs into
 account (optimum allocation with costs: UN 2008 footnote 7, p. 56). PPS methods need positive sizes
 for every unit; units with zero size must be dropped or merged first (Grosh and Mu{c n~}oz 1996, p. 81:
-areas under 30 households appended to a neighbour). Spatially balanced and grid-based draws from
-area frames without lists are planned for the frame tool.
+areas under 30 households appended to a neighbour). {cmd:grid} needs R with sf and spsurvey; its
+inclusion probabilities are spsurvey's, and with {opt aux()} they are approximations when a unit's
+size would give a probability above 1.
 
 
 {marker references}{...}
@@ -283,6 +330,7 @@ area frames without lists are planned for the frame tool.
 {phang}Brewer, K. R. W., and M. Hanif. 1983. Sampling with Unequal Probabilities. New York: Springer.{p_end}
 {phang}Cochran, W. G. 1977. Sampling Techniques. 3rd ed. New York: Wiley.{p_end}
 {phang}Dabalen, A., A. Etang, J. Hoogeveen, E. Mushi, Y. Schipper, and J. von Engelhardt. 2016. Mobile Phone Panel Surveys in Developing Countries: A Practical Guide for Microdata Collection. World Bank. (MPPS 2016){p_end}
+{phang}Dumelle, M., T. Kincaid, A. R. Olsen, and M. Weber. 2023. spsurvey: spatial sampling design and analysis in R. Journal of Statistical Software 105(3): 1-29.{p_end}
 {phang}Grosh, M., and J. Mu{c n~}oz. 1996. A Manual for Planning and Implementing the Living Standards Measurement Study Survey. LSMS Working Paper 126. World Bank.{p_end}
 {phang}Hartley, H. O., and J. N. K. Rao. 1962. Sampling with unequal probabilities and without replacement. Annals of Mathematical Statistics 33: 350-374.{p_end}
 {phang}Himelein, K., S. Eckman, J. Kastelic, K. McGee, M. Wild, and N. Yoshida. 2020. High Frequency Mobile Phone Surveys of Households to Assess the Impacts of COVID-19, Vol. 2: Guidelines on Sampling Design. World Bank. (HFPS Vol. 2){p_end}
@@ -290,6 +338,7 @@ area frames without lists are planned for the frame tool.
 {phang}Neyman, J. 1934. On the two different aspects of the representative method. Journal of the Royal Statistical Society 97(4): 558-625.{p_end}
 {phang}Oseni, G., A. Palacios-Lopez, H. K. Mugera, and J. Durazo. 2021. Capturing What Matters: Essential Guidelines for Designing Household Surveys. 2nd ed. LSMS Guidebook. World Bank.{p_end}
 {phang}StataCorp. Stata Power, Precision, and Sample-Size Reference Manual: [PSS] power twoproportions, [PSS] power twomeans.{p_end}
+{phang}Stevens, D. L., and A. R. Olsen. 2004. Spatially balanced sampling of natural resources. Journal of the American Statistical Association 99(465): 262-278.{p_end}
 {phang}United Nations. 2008. Designing Household Survey Samples: Practical Guidelines. Studies in Methods, Series F No. 98. New York. (UN 2008){p_end}
 
 

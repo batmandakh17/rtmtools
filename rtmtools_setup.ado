@@ -75,7 +75,7 @@ program define rtmtools_setup, rclass
 
     * ---- R ----
     if "`nor'" == "" {
-        di as text _n "R (optional: in this version only rtmweight calibrate, engine(regenesees) uses it; later versions will use it for rasters, grids and listing export):"
+        di as text _n "R (optional: used by rtmframe grid, replace and split (sf, terra), rtmsample grid (spsurvey) and rtmweight calibrate, engine(regenesees)):"
         _rtm_runr find
         local rs "`r(rscript)'"
         if "`rs'" == "" {
@@ -118,10 +118,16 @@ program define _rtmtools_menu
     window menu append item "Weights" "Calibrate to population totals..." "db rtmweight_calibrate"
     window menu append item "Weights" "Trim extreme weights..." "db rtmweight_trim"
     window menu append item "Weights" "Weighting report..." "db rtmweight_report"
+    window menu append submenu "RTM tools" "Frame"
+    window menu append item "Frame" "Check a list frame of areas..." "db rtmframe_list"
+    window menu append item "Frame" "Grid frame from boundaries and a raster (needs R)..." "db rtmframe_grid"
+    window menu append item "Frame" "Replacement cells (needs R)..." "db rtmframe_replace"
+    window menu append item "Frame" "Split large cells (needs R)..." "db rtmframe_split"
     window menu append submenu "RTM tools" "Sample"
     window menu append item "Sample" "Sample size per domain..." "db rtmsample_size"
     window menu append item "Sample" "Allocate the sample across strata..." "db rtmsample_allocate"
     window menu append item "Sample" "Draw a sample from the frame..." "db rtmsample_draw"
+    window menu append item "Sample" "Spatially balanced draw from a grid frame (needs R)..." "db rtmsample_grid"
     window menu append item "RTM tools" "Estimate with the design..." "db rtmest"
     window menu append separator "RTM tools"
     window menu append item "RTM tools" "Check R and dependencies" "rtmtools_setup, check nomenu"

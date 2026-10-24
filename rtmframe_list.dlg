@@ -1,0 +1,110 @@
+/*
+  rtmframe_list.dlg -- rtmtools 0.3.0 (24oct2026)
+  Dialog for: rtmframe list
+*/
+
+VERSION 16.0
+
+INCLUDE _std_medium
+DEFINE _dlght 440
+INCLUDE header
+
+HELP hlp1, view("help rtmframe##list")
+RESET res1
+
+DIALOG main, label("rtmframe list - Check a list frame of areas") tabtitle("Main")
+BEGIN
+  TEXT     tx_id         _lft    _top    _iwd    .,			///
+	label("Identifier of the area (one or more variables):")
+  VARLIST  vl_id         @       _ss     _iwd    .,			///
+	label("Identifier")						///
+	option(id)
+  TEXT     tx_size       _lft    _ls     200     .,			///
+	label("Measure of size (households):")
+  VARNAME  vn_size       210     @       _vnwd   .,			///
+	label("Measure of size")					///
+	option(size)
+  TEXT     tx_strata     _lft    _ms     200     .,			///
+	label("Strata (for the summary table):")
+  VARLIST  vl_strata     210     @       _vnwd   .,			///
+	label("Strata")							///
+	option(strata)
+  TEXT     tx_excl       _lft    _ms     200     .,			///
+	label("Exclusion flag (1 = not covered):")
+  VARNAME  vn_excl       210     @       _vnwd   .,			///
+	label("Exclusion flag")						///
+	option(exclude)
+
+  GROUPBOX gb_size       _lft    _xls    _iwd    110,			///
+	label("Units too small to sample or too large to list (Grosh and Munoz 1996: under 30 appended, over 300 segmented)")
+  TEXT     tx_min        _ilft   _ss     250     .,			///
+	label("Minimum size (0 = no check):")
+  EDIT     ed_min        270     @       80      .,			///
+	label("Minimum size")						///
+	numonly default(0)						///
+	option(minsize)
+  TEXT     tx_max        _ilft   _ms     250     .,			///
+	label("Maximum size (0 = no check):")
+  EDIT     ed_max        270     @       80      .,			///
+	label("Maximum size")						///
+	numonly default(0)						///
+	option(maxsize)
+  TEXT     tx_merge      _ilft   _ms     250     .,			///
+	label("Combine small units into new variable:")
+  EDIT     ed_merge      270     @       100     .,			///
+	label("Combined unit variable")					///
+	option(merge)
+  TEXT     tx_sort       _lft    +40     200     .,			///
+	label("Sort order for combining (geographic):")
+  VARLIST  vl_sort       210     @       _vnwd   .,			///
+	label("Sort order")						///
+	option(sort)
+
+  GROUPBOX gb_counts     _lft    _xls    _iwd    95,			///
+	label("Consistency of population counts (optional)")
+  TEXT     tx_persons    _ilft   _ss     200     .,			///
+	label("Persons:")
+  VARNAME  vn_persons    210     @       _vnwd   .,			///
+	label("Persons")						///
+	option(persons)
+  TEXT     tx_males      _ilft   _ms     200     .,			///
+	label("Males:")
+  VARNAME  vn_males      210     @       _vnwd   .,			///
+	label("Males")							///
+	option(males)
+  TEXT     tx_females    _ilft   _ms     200     .,			///
+	label("Females:")
+  VARNAME  vn_females    210     @       _vnwd   .,			///
+	label("Females")						///
+	option(females)
+  CHECKBOX ck_replace    _lft    +35     _iwd    .,			///
+	label("Replace the frame_* flag variables if they exist")	///
+	option(replace)
+END
+
+INCLUDE ifin
+
+PROGRAM command
+BEGIN
+	put "rtmframe list "
+	INCLUDE _ifin_pr
+	beginoptions
+		require main.vl_id
+		optionarg main.vl_id
+		optionarg main.vn_size
+		optionarg main.vl_strata
+		optionarg main.vn_excl
+		if !main.ed_min.isdefault() {
+			optionarg main.ed_min
+		}
+		if !main.ed_max.isdefault() {
+			optionarg main.ed_max
+		}
+		optionarg main.ed_merge
+		optionarg main.vl_sort
+		optionarg main.vn_persons
+		optionarg main.vn_males
+		optionarg main.vn_females
+		option main.ck_replace
+	endoptions
+END

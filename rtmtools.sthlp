@@ -1,7 +1,8 @@
 {smcl}
-{* *! version 0.2.0  24oct2026  rtmtools}{...}
+{* *! version 0.3.0  24oct2026  rtmtools}{...}
 {vieweralsosee "rtmweight" "help rtmweight"}{...}
 {vieweralsosee "rtmsample" "help rtmsample"}{...}
+{vieweralsosee "rtmframe" "help rtmframe"}{...}
 {vieweralsosee "rtmest" "help rtmest"}{...}
 {vieweralsosee "rtmtools_setup" "help rtmtools_setup"}{...}
 {title:Title}
@@ -14,25 +15,26 @@
 
 {pstd}
 {cmd:rtmtools} gives task teams and survey firms Stata commands, with dialog boxes under
-{bf:User > RTM tools}, for the statistical design work around a phone panel. Version 0.2.0
+{bf:User > RTM tools}, for the statistical design work around a phone panel. Version 0.3.0
 covers:
 
 {phang2}{helpb rtmweight}: base weights, nonresponse and attrition adjustment, trimming, calibration to population totals, and a weighting report (Excel and Word).{p_end}
 {phang2}{helpb rtmest}: design-based estimates (means, proportions, totals, ratios) by domain with standard errors, design effects and coefficients of variation, with the calibration in the variance.{p_end}
 {phang2}{helpb rtmsample}: sample size per domain (level or change, with design effect, nonresponse and attrition reserve), allocation across strata, and probability draws from a frame (simple random, systematic, PPS) with inclusion probabilities, design weights, reserve units and a recorded seed.{p_end}
+{phang2}{helpb rtmframe}: checks on a list frame of areas; grid frames from boundary files and a population raster (R), with replacement cells and splits of large cells; the spatially balanced draw from a grid frame is {helpb rtmsample##grid:rtmsample grid} (R, spsurvey).{p_end}
 {phang2}{helpb rtmtools_setup}: the menu, dependency checks and the R check.{p_end}
 
 {pstd}
-Planned for later versions: frames from lists and from rasters or grids ({cmd:rtmframe}), with
-spatially balanced draws, listing support ({cmd:rtmlist}) and Fay-Herriot small-area estimates
+Planned for later versions: listing support ({cmd:rtmlist}) and Fay-Herriot small-area estimates
 ({cmd:rtmsae}).
 
 {pstd}
 Principles: every statistical step runs through an official Stata command ({helpb svycal},
 {helpb svyset}, {helpb svy}, {helpb power}) or an established user-written one ({helpb survwgt},
 {helpb ipfraking}, {helpb gsample}), or arithmetic from a cited formula with hand-calculated tests;
-R is used only where Stata has no equivalent (the ReGenesees calibration features) and runs
-in the background, optional; every method default cites a source in the help file; data stay
+R is used only where Stata has no equivalent (the ReGenesees calibration features; grids,
+rasters and spatially balanced draws through sf, terra and spsurvey) and runs in the
+background, optional; every method default cites a source in the help file; data stay
 on your machine; every command writes its settings and version stamp to the dataset's notes
 and {cmd:r()}, and the dialogs write the full command to the Review window.
 

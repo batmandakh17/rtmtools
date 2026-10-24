@@ -1,0 +1,82 @@
+/*
+  rtmframe_split.dlg -- rtmtools 0.3.0 (24oct2026)
+  Dialog for: rtmframe split (needs R with sf and terra)
+*/
+
+VERSION 16.0
+
+INCLUDE _std_medium
+DEFINE _dlght 360
+INCLUDE header
+
+HELP hlp1, view("help rtmframe##split")
+RESET res1
+
+DIALOG main, label("rtmframe split - Split large cells into segments (needs R)") tabtitle("Main")
+BEGIN
+  TEXT     tx_f          _lft    _top    _iwd    .,			///
+	label("Grid frame file (GeoPackage written by rtmframe grid):")
+  FILE     fi_f          @       _ss     _iwd    .,			///
+	label("Browse...")						///
+	filter("GeoPackage (*.gpkg)|*.gpkg|All files (*.*)|*.*")
+  TEXT     tx_layer      _lft    _ms     200     .,			///
+	label("Layer (default cells):")
+  EDIT     ed_layer      210     @       120     .,			///
+	label("Layer")							///
+	option(layer)
+  TEXT     tx_id         _lft    _ms     200     .,			///
+	label("Cell identifier column:")
+  EDIT     ed_id         210     @       120     .,			///
+	label("Identifier")						///
+	default(cell_id)						///
+	option(id)
+  TEXT     tx_cells      _lft    _ls     _iwd    .,			///
+	label("Cells to split (identifiers separated by spaces):")
+  EDIT     ed_cells      @       _ss     _iwd    .,			///
+	label("Cells")							///
+	option(cells)
+  TEXT     tx_parts      _lft    _ms     250     .,			///
+	label("Parts per side (2 = 2 x 2, 3 = 3 x 3, 4 = 4 x 4):")
+  SPINNER  sp_parts      270     @       70      .,			///
+	label("Parts")							///
+	min(2) max(4) default(2)					///
+	option(parts)
+  TEXT     tx_r          _lft    _ms     _iwd    .,			///
+	label("Population raster (GeoTIFF) for the size of each part (optional):")
+  FILE     fi_r          @       _ss     _iwd    .,			///
+	label("Browse...")						///
+	filter("GeoTIFF (*.tif)|*.tif;*.tiff|All files (*.*)|*.*")	///
+	option(raster)
+  TEXT     tx_save       _lft    _ls     _iwd    .,			///
+	label("Save the parts as a GeoPackage (optional):")
+  FILE     fi_save       @       _ss     _iwd    .,			///
+	label("Browse...")						///
+	filter("GeoPackage (*.gpkg)|*.gpkg")				///
+	save								///
+	option(saving)
+  CHECKBOX ck_clear      _lft    _ms     _iwd    .,			///
+	label("Replace the data in memory with the list of parts (clear)")	///
+	default(1)							///
+	option(clear)
+END
+
+PROGRAM command
+BEGIN
+	put "rtmframe split using "
+	require main.fi_f
+	put main.fi_f
+	beginoptions
+		require main.ed_cells
+		optionarg main.ed_cells
+		if !main.sp_parts.isdefault() {
+			optionarg main.sp_parts
+		}
+		optionarg main.fi_r
+		if !main.ed_id.isdefault() {
+			optionarg main.ed_id
+		}
+		optionarg main.ed_layer
+		optionarg main.fi_save
+		option main.ck_clear
+	endoptions
+END

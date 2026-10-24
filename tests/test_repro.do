@@ -24,7 +24,7 @@ local c2 : char _dta[rtm_trim]
 assert "`c0'" != "" & "`c1'" != "" & "`c2'" != "" & "`c3'" != "" & `"`c4'"' != ""
 assert strpos(`"`c4'"', `"totalsfile("../data/rtm_totals_long.dta")"')
 local st : char _dta[rtm_calibrate_stamp]
-assert strpos("`st'", "rtmtools 0.2.0")
+assert strpos("`st'", "rtmtools 0.3.0")
 assert strpos("`st'", "Stata")
 local v2 : char w2[rtm_cmd]
 assert `"`v2'"' == `"`c3'"'
