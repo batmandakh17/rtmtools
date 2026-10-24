@@ -1,0 +1,9 @@
+# Stata and R logs (they carry the licence line of the machine that ran them)
+*.log
+*.smcl
+.DS_Store
+# working documents for the handbook team stay in the project folder, not in the package repository
+PROPOSAL.md
+VALIDATION.md
+USABILITY.md
+OPEN_ITEMS.md

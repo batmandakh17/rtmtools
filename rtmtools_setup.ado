@@ -1,0 +1,171 @@
+*! rtmtools_setup.ado  version 0.1.0  24oct2026  rtmtools
+*! One-time setup: adds the RTM tools entries to Stata's User menu for this session, can
+*! append the same lines to profile.do (so that the menu is there at every start), checks the
+*! Stata version and the user-written commands the package relies on, installs the missing
+*! ones from SSC on request, and checks R and the R packages the R-dependent steps need.
+*!
+*!   rtmtools_setup                      menu for this session + a check report
+*!   rtmtools_setup, profile             also append the menu lines to profile.do (asks first in the GUI)
+*!   rtmtools_setup, install             install missing SSC dependencies (needs internet)
+*!   rtmtools_setup, path("...Rscript")  save the path to Rscript
+*!   rtmtools_setup, check nomenu        check only
+program define rtmtools_setup, rclass
+    version 16
+    syntax [, PROFile INSTall PATH(string) CHECK NOMENU NOR MENUonly]
+    if "`menuonly'" != "" {
+        * the line profile.do runs at start-up: add the menu, nothing else, no output
+        capture _rtmtools_menu
+        exit _rc
+    }
+    _rtm_util version
+    di as text "{bf:rtmtools} `r(pkgversion)' setup"
+
+    * ---- Stata version ----
+    di as text _n "Stata: " as result "`c(stata_version)' (`c(flavor)')" _c
+    if c(stata_version) < 16 {
+        di as err "  rtmtools needs Stata 16 or later"
+        exit 9
+    }
+    capture which svycal
+    if _rc di as txt "  svycal not available: rtmweight calibrate uses engine(ipfraking) or engine(regenesees)"
+    else di as text "  svycal available"
+
+    * ---- menu ----
+    if "`nomenu'" == "" {
+        capture _rtmtools_menu
+        if _rc di as txt "note: the menu could not be added in this session (Stata error " _rc "; menus need Stata's windowed interface)"
+        else di as text "User menu: " as result "User > RTM tools" as text " added for this session"
+    }
+    if "`profile'" != "" {
+        _rtmtools_profile
+    }
+
+    * ---- R path ----
+    if "`path'" != "" {
+        _rtm_runr find, path("`path'") save
+    }
+
+    * ---- dependencies ----
+    di as text _n "Stata commands used by the package:"
+    local missing ""
+    foreach dep in survwgt ipfraking gsample fhsae sreweight {
+        capture which `dep'
+        if _rc {
+            di as text %-12s "`dep'" as err "missing" as text "   (ssc install `dep')"
+            local missing "`missing' `dep'"
+        }
+        else di as text %-12s "`dep'" as result "installed"
+    }
+    capture mata: mata which mm_sample()
+    if _rc {
+        di as text %-12s "moremata" as err "missing" as text "   (ssc install moremata; needed by gsample)"
+        local missing "`missing' moremata"
+    }
+    else di as text %-12s "moremata" as result "installed"
+    return local missing "`=trim("`missing'")'"
+    if "`install'" != "" & "`missing'" != "" {
+        di as text _n "Installing from SSC: `missing'"
+        foreach dep of local missing {
+            capture noisily ssc install `dep', replace
+            if _rc di as err "could not install `dep' (no internet connection, or SSC unreachable)"
+        }
+    }
+    else if "`missing'" != "" di as text "Run {stata rtmtools_setup, install} to install the missing commands (needs an internet connection)."
+    di as text "Which steps need which command: rtmweight nonresponse method(classes) needs survwgt; rtmweight calibrate engine(ipfraking) needs ipfraking; rtmsample draw needs gsample and moremata. fhsae and sreweight are for the small-area and later commands."
+
+    * ---- R ----
+    if "`nor'" == "" {
+        di as text _n "R (optional: in this version only rtmweight calibrate, engine(regenesees) uses it; later versions will use it for rasters, grids and listing export):"
+        _rtm_runr find
+        local rs "`r(rscript)'"
+        if "`rs'" == "" {
+            di as text "  Rscript: " as err "not found" as text `". If R is installed, run rtmtools_setup, path("...full path to Rscript...")"'
+            return local rscript ""
+        }
+        else {
+            di as text "  Rscript: " as result "`rs'"
+            return local rscript "`rs'"
+            tempfile a s
+            tempname fh
+            quietly file open `fh' using "`a'", write text replace
+            file write `fh' "status=`s'" _n
+            file close `fh'
+            capture noisily _rtm_runr, script(rtmtools_check.R) args("`a'") status("`s'") quietly
+            if _rc di as err "  R could not be run; see the message above"
+            else {
+                local msg "`r(message)'"
+                * print one item per line
+                local msg = subinstr("`msg'", " package ", "|package ", .)
+                tokenize "`msg'", parse("|")
+                local i 1
+                while "``i''" != "" {
+                    if "``i''" != "|" di as text "  ``i''"
+                    local ++i
+                }
+            }
+        }
+    }
+    di as text _n "Done. Type {stata help rtmtools} for the package overview."
+end
+
+* ---- the User menu -----------------------------------------------------------------------------
+program define _rtmtools_menu
+    version 16
+    window menu append submenu "stUser" "RTM tools"
+    window menu append submenu "RTM tools" "Weights"
+    window menu append item "Weights" "Base (design) weights..." "db rtmweight_base"
+    window menu append item "Weights" "Nonresponse and attrition adjustment..." "db rtmweight_nonresponse"
+    window menu append item "Weights" "Calibrate to population totals..." "db rtmweight_calibrate"
+    window menu append item "Weights" "Trim extreme weights..." "db rtmweight_trim"
+    window menu append item "Weights" "Weighting report..." "db rtmweight_report"
+    window menu append submenu "RTM tools" "Sample"
+    window menu append item "Sample" "Sample size per domain..." "db rtmsample_size"
+    window menu append item "Sample" "Allocate the sample across strata..." "db rtmsample_allocate"
+    window menu append item "Sample" "Draw a sample from the frame..." "db rtmsample_draw"
+    window menu append item "RTM tools" "Estimate with the design..." "db rtmest"
+    window menu append separator "RTM tools"
+    window menu append item "RTM tools" "Check R and dependencies" "rtmtools_setup, check nomenu"
+    window menu append item "RTM tools" "Help and about rtmtools" "help rtmtools"
+    window menu refresh
+end
+
+* ---- append the menu lines to profile.do -------------------------------------------------------
+program define _rtmtools_profile
+    version 16
+    local pdir "`c(sysdir_personal)'"
+    capture mkdir "`pdir'"
+    local pfile "`pdir'profile.do"
+    local marker "* rtmtools menu (added by rtmtools_setup)"
+    capture confirm file "`pfile'"
+    if !_rc {
+        tempname fh
+        local has 0
+        file open `fh' using "`pfile'", read text
+        file read `fh' line
+        while r(eof) == 0 {
+            if strpos(`"`line'"', "rtmtools_setup") local has 1
+            file read `fh' line
+        }
+        file close `fh'
+        if `has' {
+            di as text "profile.do already starts the RTM tools menu (`pfile')"
+            exit
+        }
+    }
+    di as text "The following lines would be appended to `pfile' so that the menu appears at every start:"
+    di as result `"  `marker'"'
+    di as result `"  capture rtmtools_setup, menuonly"'
+    capture window stopbox rusure "Append the RTM tools menu to profile.do?"
+    if _rc {
+        if "`c(mode)'" == "batch" di as txt "(batch mode: no dialog; appending because the profile option was given)"
+        else {
+            di as text "Not appended."
+            exit
+        }
+    }
+    tempname fh
+    quietly file open `fh' using "`pfile'", write text append
+    file write `fh' _n "`marker'" _n "capture rtmtools_setup, menuonly" _n
+    file close `fh'
+    di as text "Appended to `pfile'. The menu will be there at the next start of Stata."
+end

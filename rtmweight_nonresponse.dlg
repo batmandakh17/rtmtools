@@ -1,0 +1,154 @@
+/*
+  rtmweight_nonresponse.dlg -- rtmtools 0.1.0 (24oct2026)
+  Dialog for: rtmweight nonresponse
+*/
+
+VERSION 16.0
+
+INCLUDE _std_medium
+DEFINE _dlght 400
+INCLUDE header
+
+HELP hlp1, view("help rtmweight##nonresponse")
+RESET res1
+
+LIST meth_list
+BEGIN
+	"Weighting classes (survwgt): classes defined by the variables below"
+	"Response propensity, logit model on the covariates below"
+	"Response propensity, probit model on the covariates below"
+END
+
+LIST meth_vals
+BEGIN
+	classes
+	logit
+	probit
+END
+
+DIALOG main, label("rtmweight nonresponse - Nonresponse and attrition adjustment") tabtitle("Data")
+BEGIN
+  TEXT     tx_resp       _lft    _top    _iwd    .,			///
+	label("Response indicator (1 = interviewed, 0 = eligible but not interviewed):")
+  VARNAME  vn_resp       @       _ss     _vnwd   .,			///
+	label("Response indicator")
+  TEXT     tx_w          _lft    _ls     _iwd    .,			///
+	label("Weight to adjust (the base weight, or the previous round's weight):")
+  VARNAME  vn_w          @       _ss     _vnwd   .,			///
+	label("Weight to adjust")					///
+	option(weight)
+  TEXT     tx_gen        _lft    _ls     _iwd    .,			///
+	label("Name of the adjusted weight variable:")
+  EDIT     ed_gen        @       _ss     _vnwd   .,			///
+	label("New variable")						///
+	default(w1)							///
+	option(generate)
+  CHECKBOX ck_replace    _vnsep  @       200   .,			///
+	label("Replace it if it exists")				///
+	option(replace)
+  TEXT     tx_note       _lft    _xls    _iwd    .,			///
+	label("Nonrespondents get a weight of 0; respondents carry the weight of their class or propensity group.")
+END
+
+DIALOG meth, tabtitle("Method")
+BEGIN
+  TEXT     tx_meth       _lft    _top    _iwd    .,			///
+	label("Adjustment method (default: logit response propensity, as in the L2T 2017 report and HFPS Vol. 2):")
+  COMBOBOX cb_meth       @       _ss     _iwd    .,			///
+	dropdownlist							///
+	contents(meth_list)						///
+	values(meth_vals)						///
+	default(logit)							///
+	option(method)							///
+	onselchange(program meth_changed)
+  TEXT     tx_cls        _lft    _ls     _iwd    .,			///
+	label("Class variables (for weighting classes), e.g. region urban:")
+  VARLIST  vl_cls        @       _ss     @       .,			///
+	label("Class variables")					///
+	option(classes)
+  TEXT     tx_cov        _lft    _ls     _iwd    .,			///
+	label("Covariates of the response model (for propensity), e.g. urban i.educ head_age:")
+  VARLIST  vl_cov        @       _ss     @       .,			///
+	label("Covariates")						///
+	fv								///
+	option(covariates)
+  TEXT     tx_ng         _lft    _ls     _iwd    .,			///
+	label("Number of propensity groups (deciles = 10):")
+  SPINNER  sp_ng         @       _ss     _spwd   .,			///
+	min(2) max(50) default(10)					///
+	option(ngroups)
+  TEXT     tx_by         _lft    _ls     _iwd    .,			///
+	label("Fit the model separately within (optional):")
+  VARLIST  vl_by         @       _ss     @       .,			///
+	label("By")							///
+	option(by)
+  CHECKBOX ck_wm         _lft    _ls     _iwd    .,			///
+	label("Weight the response model by the weight to adjust (default: unweighted, as in Dabalen et al. 2016, Box 2.2)")	///
+	option(weightedmodel)
+  TEXT     tx_mc         _lft    _ls     _iwd    .,			///
+	label("Smallest number of respondents a class may have (0 = no check):")
+  SPINNER  sp_mc         @       _ss     _spwd   .,			///
+	min(0) max(1000) default(0)					///
+	option(mincell)
+  CHECKBOX ck_noisily    _lft    _ls     _iwd    .,			///
+	label("Show the model output")					///
+	option(noisily)
+END
+
+PROGRAM meth_changed
+BEGIN
+	if meth.cb_meth.iseq("classes") {
+		call meth.vl_cls.enable
+		call meth.sp_mc.enable
+		call meth.vl_cov.disable
+		call meth.sp_ng.disable
+		call meth.vl_by.disable
+		call meth.ck_wm.disable
+		call meth.ck_noisily.disable
+	}
+	else {
+		call meth.vl_cls.disable
+		call meth.sp_mc.disable
+		call meth.vl_cov.enable
+		call meth.sp_ng.enable
+		call meth.vl_by.enable
+		call meth.ck_wm.enable
+		call meth.ck_noisily.enable
+	}
+END
+
+SCRIPT POSTINIT
+BEGIN
+	program meth_changed
+END
+
+INCLUDE ifin
+
+PROGRAM command
+BEGIN
+	put "rtmweight nonresponse "
+	require main.vn_resp
+	varlist main.vn_resp
+	INCLUDE _ifin_pr
+	beginoptions
+		require main.vn_w
+		optionarg main.vn_w
+		require main.ed_gen
+		optionarg main.ed_gen
+		option main.ck_replace
+		optionarg meth.cb_meth
+		if meth.cb_meth.iseq("classes") {
+			require meth.vl_cls
+			optionarg meth.vl_cls
+			optionarg meth.sp_mc
+		}
+		else {
+			require meth.vl_cov
+			optionarg meth.vl_cov
+			optionarg meth.sp_ng
+			optionarg meth.vl_by
+			option meth.ck_wm
+			option meth.ck_noisily
+		}
+	endoptions
+END

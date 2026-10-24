@@ -1,0 +1,144 @@
+/*
+  rtmsample_allocate.dlg -- rtmtools 0.2.0 (24oct2026)
+  Dialog for: rtmsample allocate
+*/
+
+VERSION 16.0
+
+INCLUDE _std_medium
+DEFINE _dlght 470
+INCLUDE header
+
+HELP hlp1, view("help rtmsample##allocate")
+RESET res1
+
+DIALOG main, label("rtmsample allocate - Allocate the sample across strata") tabtitle("Main")
+BEGIN
+  TEXT     tx_strata     _lft    _top    _iwd    .,			///
+	label("Strata (one or more variables):")
+  VARLIST  vl_strata     @       _ss     _iwd    .,			///
+	label("Strata")							///
+	option(strata)
+  TEXT     tx_n          _lft    _ls     250     .,			///
+	label("Total sample to allocate (n):")
+  EDIT     ed_n          260     @       100     .,			///
+	label("Total sample")						///
+	numonly							///
+	option(n)
+  TEXT     tx_size       _lft    _ls     _iwd    .,			///
+	label("Measure of size of each unit, N_h = its sum by stratum (blank: units are counted):")
+  VARNAME  vn_size       @       _ss     _vnwd   .,			///
+	label("Measure of size")					///
+	option(size)
+
+  GROUPBOX gb_meth       _lft    _xls    _iwd    150,			///
+	label("Allocation")
+  RADIO    rb_prop       _ilft   _ss     _ibwd   ., first		///
+	label("Proportional to N_h (UN 2008, paras 68-70; the LSMS starting point)")	///
+	onclickon(script m_other)
+  RADIO    rb_equal      _ilft   _ss     _ibwd   .,			///
+	label("Equal: n / H for every stratum (domains of equal reliability)")	///
+	onclickon(script m_other)
+  RADIO    rb_neyman     _ilft   _ss     _ibwd   .,			///
+	label("Neyman: proportional to N_h x S_h, with S_h from:")	///
+	onclickon(script m_neyman)
+  VARNAME  vn_sd         _iilft  _ss     _vnwd   .,			///
+	label("Standard deviation variable")				///
+	option(sd)
+  RADIO    rb_power      _ilft   _ms     _ibwd   ., last		///
+	label("Power allocation, proportional to N_h^q (Bankier 1988); q (0 = equal, 1 = proportional):")	///
+	onclickon(script m_power)
+  EDIT     ed_q          _iilft  _ss     70      .,			///
+	label("Exponent q")						///
+	numonly default(0.5)						///
+	option(power)
+
+  TEXT     tx_min        _lft    +45     250     .,			///
+	label("Minimum per stratum (0 = none; LSMS: 300-400 households per domain):")
+  EDIT     ed_min        260     @       100     .,			///
+	label("Minimum")						///
+	numonly default(0)						///
+	option(min)
+  TEXT     tx_max        _lft    _ms     250     .,			///
+	label("Maximum per stratum (0 = none):")
+  EDIT     ed_max        260     @       100     .,			///
+	label("Maximum")						///
+	numonly default(0)						///
+	option(max)
+  TEXT     tx_units      _lft    _ms     _iwd    .,			///
+	label("For a stratum table: variable with the number of selectable units per stratum (optional):")
+  VARNAME  vn_units      @       _ss     _vnwd   .,			///
+	label("Units per stratum")					///
+	option(units)
+  TEXT     tx_gen        _lft    _ls     250     .,			///
+	label("Write the allocated n_h to a new variable (optional):")
+  EDIT     ed_gen        260     @       _vnwd   .,			///
+	label("New variable")						///
+	option(generate)
+  CHECKBOX ck_replace    _lft    _ms     180     .,			///
+	label("Replace it if it exists")				///
+	option(replace)
+  CHECKBOX ck_noround    200     @       200     .,			///
+	label("Do not round to whole numbers")				///
+	option(noround)
+END
+
+SCRIPT m_other
+BEGIN
+	main.vn_sd.disable
+	main.ed_q.disable
+END
+
+SCRIPT m_neyman
+BEGIN
+	main.vn_sd.enable
+	main.ed_q.disable
+END
+
+SCRIPT m_power
+BEGIN
+	main.vn_sd.disable
+	main.ed_q.enable
+END
+
+SCRIPT POSTINIT
+BEGIN
+	script m_other
+END
+
+INCLUDE ifin
+
+PROGRAM command
+BEGIN
+	put "rtmsample allocate "
+	INCLUDE _ifin_pr
+	beginoptions
+		require main.vl_strata
+		optionarg main.vl_strata
+		require main.ed_n
+		optionarg main.ed_n
+		optionarg main.vn_size
+		if main.rb_equal {
+			put " method(equal)"
+		}
+		if main.rb_neyman {
+			put " method(neyman)"
+			require main.vn_sd
+			optionarg main.vn_sd
+		}
+		if main.rb_power {
+			put " method(power)"
+			optionarg main.ed_q
+		}
+		if !main.ed_min.isdefault() {
+			optionarg main.ed_min
+		}
+		if !main.ed_max.isdefault() {
+			optionarg main.ed_max
+		}
+		optionarg main.vn_units
+		optionarg main.ed_gen
+		option main.ck_replace
+		option main.ck_noround
+	endoptions
+END

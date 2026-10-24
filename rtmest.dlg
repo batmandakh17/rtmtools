@@ -1,0 +1,219 @@
+/*
+  rtmest.dlg -- rtmtools 0.1.0 (24oct2026)
+  Dialog for: rtmest
+*/
+
+VERSION 16.0
+
+INCLUDE _std_medium
+DEFINE _dlght 430
+INCLUDE header
+
+HELP hlp1, view("help rtmest")
+RESET res1
+
+LIST stat_list
+BEGIN
+	"Mean"
+	"Proportion (share in each category)"
+	"Total"
+	"Ratio of two variables"
+END
+
+LIST stat_vals
+BEGIN
+	mean
+	proportion
+	total
+	ratio
+END
+
+LIST su_list
+BEGIN
+	"missing: standard errors missing for singleton strata (Stata's default)"
+	"certainty: singleton strata treated as certainty units"
+	"scaled: certainty, scaled by the average variance of the other strata"
+	"centered: singleton strata centered at the grand mean"
+END
+
+LIST su_vals
+BEGIN
+	missing
+	certainty
+	scaled
+	centered
+END
+
+LIST vce_list
+BEGIN
+	"Taylor linearization"
+	"Bootstrap (needs bootstrap replicate weights set with svyset)"
+	"BRR (needs BRR weights)"
+	"Jackknife"
+	"SDR (needs SDR weights)"
+END
+
+LIST vce_vals
+BEGIN
+	linearized
+	bootstrap
+	brr
+	jackknife
+	sdr
+END
+
+DIALOG main, label("rtmest - Estimates with the survey design") tabtitle("Data")
+BEGIN
+  TEXT     tx_y          _lft    _top    _iwd    .,			///
+	label("Outcome variables (for a ratio, the numerator and denominator go in the Design tab):")
+  VARLIST  vl_y          @       _ss     @       .,			///
+	label("Outcomes")
+  TEXT     tx_w          _lft    _ls     _iwd    .,			///
+	label("Weight (the final weight from rtmweight):")
+  VARNAME  vn_w          @       _ss     _vnwd   .,			///
+	label("Weight")							///
+	option(weight)
+  TEXT     tx_over       _lft    _ls     _iwd    .,			///
+	label("Domains: estimate separately for each value of (optional):")
+  VARNAME  vn_over       @       _ss     _vnwd   .,			///
+	label("Over")							///
+	option(over)
+  TEXT     tx_sub        _lft    _ls     _iwd    .,			///
+	label("Subpopulation indicator (1 = in the subpopulation; optional):")
+  VARNAME  vn_sub        @       _ss     _vnwd   .,			///
+	label("Subpopulation")						///
+	option(subpop)
+  TEXT     tx_stat       _lft    _ls     _iwd    .,			///
+	label("Statistic:")
+  COMBOBOX cb_stat       @       _ss     _iwd    .,			///
+	dropdownlist							///
+	contents(stat_list)						///
+	values(stat_vals)						///
+	default(mean)							///
+	option(stat)							///
+	onselchange(program stat_changed)
+END
+
+DIALOG des, tabtitle("Design")
+BEGIN
+  TEXT     tx_str        _lft    _top    _iwd    .,			///
+	label("Strata:")
+  VARNAME  vn_str        @       _ss     _vnwd   .,			///
+	label("Strata")							///
+	option(strata)
+  TEXT     tx_psu        _lft    _ls     _iwd    .,			///
+	label("Primary sampling unit (cluster):")
+  VARNAME  vn_psu        @       _ss     _vnwd   .,			///
+	label("PSU")							///
+	option(psu)
+  TEXT     tx_fpc        _lft    _ls     _iwd    .,			///
+	label("Finite population correction (optional):")
+  VARNAME  vn_fpc        @       _ss     _vnwd   .,			///
+	label("FPC")							///
+	option(fpc)
+  TEXT     tx_ratio      _lft    _ls     _iwd    .,			///
+	label("Ratio: numerator and denominator (two variables):")
+  VARLIST  vl_ratio      @       _ss     @       .,			///
+	label("Ratio variables")					///
+	option(ratio)
+  TEXT     tx_su         _lft    _ls     _iwd    .,			///
+	label("Strata with a single sampling unit (UN 2008, p. 157 recommends two units per stratum):")
+  COMBOBOX cb_su         @       _ss     _iwd    .,			///
+	dropdownlist							///
+	contents(su_list)						///
+	values(su_vals)							///
+	default(missing)						///
+	option(singleunit)
+  TEXT     tx_vce        _lft    _ls     _iwd    .,			///
+	label("Variance estimation:")
+  COMBOBOX cb_vce        @       _ss     _iwd    .,			///
+	dropdownlist							///
+	contents(vce_list)						///
+	values(vce_vals)						///
+	default(linearized)						///
+	option(vce)
+  CHECKBOX ck_nocal      _lft    _ls     _iwd    .,			///
+	label("Treat the weights as fixed: do not declare the recorded calibration in svyset")	///
+	option(nocalibration)
+END
+
+DIALOG out, tabtitle("Output")
+BEGIN
+  TEXT     tx_cv         _lft    _top    _iwd    .,			///
+	label("Flag estimates whose coefficient of variation is at least (percent):")
+  SPINNER  sp_cv         @       _ss     _spwd   .,			///
+	min(1) max(100) default(30)					///
+	option(cvflag)
+  TEXT     tx_lvl        _lft    _ls     _iwd    .,			///
+	label("Confidence level (percent):")
+  SPINNER  sp_lvl        @       _ss     _spwd   .,			///
+	min(10) max(99.99) default(95)					///
+	option(level)
+  CHECKBOX ck_excel      _lft    _ls     _iwd    .,			///
+	label("Write the table to an Excel file")			///
+	onclickon(out.fi_excel.enable)					///
+	onclickoff(out.fi_excel.disable)
+  FILE     fi_excel      _indent _ss     _ibwd   .,			///
+	label("Browse...")						///
+	save								///
+	filter("Excel files (*.xlsx)|*.xlsx")				///
+	defext(xlsx)							///
+	option(excel)
+END
+
+PROGRAM stat_changed
+BEGIN
+	if main.cb_stat.iseq("ratio") {
+		call des.vl_ratio.enable
+	}
+	else {
+		call des.vl_ratio.disable
+	}
+END
+
+SCRIPT POSTINIT
+BEGIN
+	out.fi_excel.disable
+	program stat_changed
+END
+
+INCLUDE ifin
+
+PROGRAM command
+BEGIN
+	put "rtmest "
+	require main.vl_y
+	varlist main.vl_y
+	INCLUDE _ifin_pr
+	beginoptions
+		require main.vn_w
+		optionarg main.vn_w
+		optionarg main.vn_over
+		optionarg main.vn_sub
+		optionarg main.cb_stat
+		if main.cb_stat.iseq("ratio") {
+			require des.vl_ratio
+			optionarg des.vl_ratio
+		}
+		optionarg des.vn_str
+		optionarg des.vn_psu
+		optionarg des.vn_fpc
+		if !des.cb_su.isdefault() {
+			optionarg des.cb_su
+		}
+		if !des.cb_vce.isdefault() {
+			optionarg des.cb_vce
+		}
+		option des.ck_nocal
+		if !out.sp_cv.isdefault() {
+			optionarg out.sp_cv
+		}
+		if !out.sp_lvl.isdefault() {
+			optionarg out.sp_lvl
+		}
+		if out.ck_excel {
+			require out.fi_excel
+			optionarg out.fi_excel
+		}
+	endoptions
+END

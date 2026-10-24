@@ -1,0 +1,91 @@
+/*
+  rtmweight_report.dlg -- rtmtools 0.1.0 (24oct2026)
+  Dialog for: rtmweight report
+*/
+
+VERSION 16.0
+
+INCLUDE _std_medium
+DEFINE _dlght 380
+INCLUDE header
+
+HELP hlp1, view("help rtmweight##report")
+RESET res1
+
+DIALOG main, label("rtmweight report - Weighting report") tabtitle("Main")
+BEGIN
+  TEXT     tx_w          _lft    _top    _iwd    .,			///
+	label("Weight variables, in the order of the steps (e.g. w0 w1 w1t w2):")
+  VARLIST  vl_w          @       _ss     @       .,			///
+	label("Weights")
+  TEXT     tx_tot        _lft    _ls     _iwd    .,			///
+	label("Population totals to check against the last weight (optional), as level.variable=total pairs:")
+  EDIT     ed_tot        @       _ss     _iwd    .,			///
+	label("Totals")							///
+	option(totals)
+  TEXT     tx_by         _lft    _ls     _iwd    .,			///
+	label("Show the last weight by groups of (optional):")
+  VARNAME  vn_by         @       _ss     _vnwd   .,			///
+	label("By")							///
+	option(by)
+  CHECKBOX ck_graph      _lft    _ls     _iwd    .,			///
+	label("Graph the weight distributions by stage")		///
+	option(graph)
+  CHECKBOX ck_notes      _lft    _ms     _iwd    .,			///
+	label("List the weighting steps recorded in the dataset")	///
+	option(notes)
+END
+
+DIALOG out, tabtitle("Export")
+BEGIN
+  CHECKBOX ck_excel      _lft    _top    _iwd    .,			///
+	label("Write the tables to an Excel file")			///
+	onclickon(out.fi_excel.enable)					///
+	onclickoff(out.fi_excel.disable)
+  FILE     fi_excel      _indent _ss     _ibwd   .,			///
+	label("Browse...")						///
+	save								///
+	filter("Excel files (*.xlsx)|*.xlsx")				///
+	defext(xlsx)							///
+	option(excel)
+  CHECKBOX ck_docx       _lft    _ls     _iwd    .,			///
+	label("Write a Word method note listing every weighting step and its source")	///
+	onclickon(out.fi_docx.enable)					///
+	onclickoff(out.fi_docx.disable)
+  FILE     fi_docx       _indent _ss     _ibwd   .,			///
+	label("Browse...")						///
+	save								///
+	filter("Word documents (*.docx)|*.docx")			///
+	defext(docx)							///
+	option(docx)
+END
+
+SCRIPT POSTINIT
+BEGIN
+	out.fi_excel.disable
+	out.fi_docx.disable
+END
+
+INCLUDE ifin
+
+PROGRAM command
+BEGIN
+	put "rtmweight report "
+	require main.vl_w
+	varlist main.vl_w
+	INCLUDE _ifin_pr
+	beginoptions
+		optionarg main.ed_tot
+		optionarg main.vn_by
+		option main.ck_graph
+		option main.ck_notes
+		if out.ck_excel {
+			require out.fi_excel
+			optionarg out.fi_excel
+		}
+		if out.ck_docx {
+			require out.fi_docx
+			optionarg out.fi_docx
+		}
+	endoptions
+END

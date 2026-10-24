@@ -1,0 +1,112 @@
+/*
+  rtmweight_base.dlg -- rtmtools 0.1.0 (24oct2026)
+  Dialog for: rtmweight base
+*/
+
+VERSION 16.0
+
+INCLUDE _std_medium
+DEFINE _dlght 430
+INCLUDE header
+
+HELP hlp1, view("help rtmweight##base")
+RESET res1
+
+DIALOG main, label("rtmweight base - Design (base) weights") tabtitle("Main")
+BEGIN
+  GROUPBOX gb_mode       _lft    _top    _iwd    175,		///
+	label("How the base weight is built")
+  RADIO    rb_prob       _ilft   _ss     _ibwd   ., first		///
+	label("From stage inclusion probabilities: weight = 1 / (p1 x p2 x ...)")	///
+	onclickon(script mode_prob)
+  TEXT     tx_prob       _iilft _ss    _ibwd   .,			///
+	label("Probability variables, one per sampling stage:")
+  VARLIST  vl_prob       @       _ss     @       .,			///
+	label("Probability variables")					///
+	option(probability)
+  RADIO    rb_base       _ilft   _ls     _ibwd   ., last		///
+	label("From a baseline weight, redistributed to the phone subsample")	///
+	onclickon(script mode_base)
+  TEXT     tx_bw         _iilft _ss    _ibwd   .,			///
+	label("Baseline weight:")
+  VARNAME  vn_bw         @       _ss     _vnwd   .,			///
+	label("Baseline weight")					///
+	option(baseweight)
+  TEXT     tx_sub        _iilft _ms    _ibwd   .,			///
+	label("Subsample indicator (1 = in the phone sample, 0 = not):")
+  VARNAME  vn_sub        @       _ss     _vnwd   .,			///
+	label("Subsample indicator")					///
+	option(subsample)
+  TEXT     tx_by         _iilft _ms    _ibwd   .,			///
+	label("Redistribute within groups of (usually the strata):")
+  VARLIST  vl_by         @       _ss     @       .,			///
+	label("By groups")						///
+	option(by)
+
+  CHECKBOX ck_mult       _lft    +45     _iwd    .,			///
+	label("Divide by the number of phone numbers the household holds (multiplicity)")	///
+	onclickon(main.vn_mult.enable)					///
+	onclickoff(main.vn_mult.disable)
+  VARNAME  vn_mult       _indent _ss     _vnwd   .,			///
+	label("Number of phone numbers")				///
+	option(multiplicity)
+
+  TEXT     tx_gen        _lft    _ls     _iwd    .,			///
+	label("Name of the new weight variable:")
+  EDIT     ed_gen        @       _ss     _vnwd   .,			///
+	label("New variable")						///
+	default(w0)							///
+	option(generate)
+  CHECKBOX ck_replace    _vnsep  @       200   .,			///
+	label("Replace it if it exists")				///
+	option(replace)
+END
+
+SCRIPT mode_prob
+BEGIN
+	main.vl_prob.enable
+	main.vn_bw.disable
+	main.vn_sub.disable
+	main.vl_by.disable
+END
+
+SCRIPT mode_base
+BEGIN
+	main.vl_prob.disable
+	main.vn_bw.enable
+	main.vn_sub.enable
+	main.vl_by.enable
+END
+
+SCRIPT POSTINIT
+BEGIN
+	main.vn_mult.disable
+	script mode_prob
+END
+
+INCLUDE ifin
+
+PROGRAM command
+BEGIN
+	put "rtmweight base "
+	INCLUDE _ifin_pr
+	beginoptions
+		if main.rb_prob {
+			require main.vl_prob
+			optionarg main.vl_prob
+		}
+		if main.rb_base {
+			require main.vn_bw
+			optionarg main.vn_bw
+			optionarg main.vn_sub
+			optionarg main.vl_by
+		}
+		if main.ck_mult {
+			require main.vn_mult
+			optionarg main.vn_mult
+		}
+		require main.ed_gen
+		optionarg main.ed_gen
+		option main.ck_replace
+	endoptions
+END

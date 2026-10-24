@@ -1,0 +1,63 @@
+v 3
+d 'RTMTOOLS': Stata tools for the design and weighting of real-time monitoring phone surveys
+d
+d rtmtools gives task teams Stata commands with dialog boxes (User > RTM tools) for
+d the weights of a phone panel round (base weights, nonresponse and attrition
+d adjustment, trimming, calibration to population totals, weighting report), for
+d design-based estimates with design effects and coefficients of variation, and for
+d sample sizes, allocation across strata and probability draws from a frame.
+d Statistical steps run through svycal, svyset and svy, survwgt and ipfraking;
+d the ReGenesees calibration features run through R in the background, optional.
+d Method defaults cite the HFPS sampling guidelines (Himelein et al. 2020), the
+d Listening to Tajikistan methods report, Ambel et al. 2021 and UN 2008.
+d
+d KW: survey weights
+d KW: calibration
+d KW: nonresponse adjustment
+d KW: phone survey
+d KW: real-time monitoring
+d
+d Requires: Stata version 16 (svycal: Stata 18); survwgt, ipfraking, gsample and moremata from SSC for the corresponding steps
+d
+d Distribution-Date: 20261024
+d
+d Author: Real-Time Monitoring Survey Handbook task team, World Bank
+d
+F rtmtools.sthlp
+F rtmtools_setup.ado
+F rtmtools_setup.sthlp
+F rtmtools_check.R
+F rtmweight.ado
+F rtmweight.sthlp
+F rtmweight_base.ado
+F rtmweight_base.dlg
+F rtmweight_nonresponse.ado
+F rtmweight_nonresponse.dlg
+F rtmweight_calibrate.ado
+F rtmweight_calibrate.dlg
+F rtmweight_trim.ado
+F rtmweight_trim.dlg
+F rtmweight_report.ado
+F rtmweight_report.dlg
+F rtm_calibrate.R
+F rtmsample.ado
+F rtmsample.sthlp
+F rtmsample_size.ado
+F rtmsample_size.dlg
+F rtmsample_allocate.ado
+F rtmsample_allocate.dlg
+F rtmsample_draw.ado
+F rtmsample_draw.dlg
+F rtmest.ado
+F rtmest.sthlp
+F rtmest.dlg
+F _rtm_util.ado
+F _rtm_runr.ado
+f data/rtm_baseline.dta
+f data/rtm_round1.dta
+f data/rtm_frame.dta
+f data/rtm_population.dta
+f data/rtm_totals_long.dta
+f data/rtm_totals_cells.dta
+f data/rtm_totals_region.dta
+f data/make_rtm_synthetic.do

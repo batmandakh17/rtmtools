@@ -1,0 +1,24 @@
+*! rtmweight.ado  version 0.1.0  24oct2026  rtmtools
+*! Dispatcher: rtmweight base | nonresponse | calibrate | trim | report
+program define rtmweight, rclass
+    version 16
+    gettoken sub 0 : 0, parse(" ,")
+    local sub = lower(trim("`sub'"))
+    if "`sub'" == "" {
+        di as err "rtmweight: a subcommand is required: base, nonresponse, calibrate, trim or report"
+        di as err "see {help rtmweight}"
+        exit 198
+    }
+    * accept unambiguous abbreviations
+    local full ""
+    foreach s in base nonresponse calibrate trim report {
+        if strpos("`s'", "`sub'") == 1 local full "`full' `s'"
+    }
+    local full = trim("`full'")
+    if wordcount("`full'") != 1 {
+        di as err "rtmweight: unknown subcommand {bf:`sub'}; use base, nonresponse, calibrate, trim or report"
+        exit 198
+    }
+    rtmweight_`full' `0'
+    return add
+end

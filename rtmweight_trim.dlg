@@ -1,0 +1,154 @@
+/*
+  rtmweight_trim.dlg -- rtmtools 0.1.0 (24oct2026)
+  Dialog for: rtmweight trim
+*/
+
+VERSION 16.0
+
+INCLUDE _std_medium
+DEFINE _dlght 400
+INCLUDE header
+
+HELP hlp1, view("help rtmweight##trim")
+RESET res1
+
+DIALOG main, label("rtmweight trim - Trim extreme weights") tabtitle("Main")
+BEGIN
+  TEXT     tx_w          _lft    _top    _iwd    .,			///
+	label("Weight to trim:")
+  VARNAME  vn_w          @       _ss     _vnwd   .,			///
+	label("Weight to trim")
+  TEXT     tx_gen        _lft    _ls     _iwd    .,			///
+	label("Name of the trimmed weight variable:")
+  EDIT     ed_gen        @       _ss     _vnwd   .,			///
+	label("New variable")						///
+	default(w1t)							///
+	option(generate)
+  CHECKBOX ck_replace    _vnsep  @       200   .,			///
+	label("Replace it if it exists")				///
+	option(replace)
+
+  GROUPBOX gb_rule       _lft    _xls    _iwd    165,		///
+	label("Rule")
+  RADIO    rb_winsor     _ilft   _ss     _ibwd   ., first		///
+	label("Winsorize: weights above a percentile are set to that percentile (HFPS Vol. 2: 98th; Ambel et al. 2021: 2nd and 98th)")	///
+	onclickon(script rule_winsor)
+  TEXT     tx_pct        _iilft _ss    120     .,			///
+	label("Upper percentile:")
+  SPINNER  sp_pct        +125    @       _spwd   .,			///
+	min(51) max(99) default(98)					///
+	option(pct)
+  TEXT     tx_low        _iilft _ms    120     .,			///
+	label("Lower percentile (0 = none):")
+  SPINNER  sp_low        +125    @       _spwd   .,			///
+	min(0) max(49) default(0)					///
+	option(lowpct)
+  RADIO    rb_cap        _ilft   _ls     _ibwd   ., last		///
+	label("Cap at a bound (UN 2008, section 6.8)")			///
+	onclickon(script rule_cap)
+  RADIO    rb_capabs     _iilft _ss    _ibwd   ., first		///
+	label("an absolute value:")					///
+	onclickon(script cap_abs)
+  EDIT     ed_cap        55 _ss    60  .,			///
+	label("Cap")							///
+	numonly								///
+	option(cap)
+  RADIO    rb_capmult    _iilft _ms    _ibwd   ., last		///
+	label("a multiple of the median weight:")			///
+	onclickon(script cap_mult)
+  EDIT     ed_capmult    55 _ss    60  .,			///
+	label("Multiple of the median")					///
+	numonly								///
+	default(3)							///
+	option(capmult)
+
+  TEXT     tx_by         _lft    +40     _iwd    .,			///
+	label("Compute percentiles, bounds and the rescaling within groups of (optional):")
+  VARLIST  vl_by         @       _ss     @       .,			///
+	label("By")							///
+	option(by)
+  CHECKBOX ck_nores      _lft    _ls     _iwd    .,			///
+	label("Do not rescale to the original weight total")		///
+	option(norescale)
+END
+
+SCRIPT rule_winsor
+BEGIN
+	main.sp_pct.enable
+	main.sp_low.enable
+	main.rb_capabs.disable
+	main.rb_capmult.disable
+	main.ed_cap.disable
+	main.ed_capmult.disable
+END
+
+SCRIPT rule_cap
+BEGIN
+	main.sp_pct.disable
+	main.sp_low.disable
+	main.rb_capabs.enable
+	main.rb_capmult.enable
+	program cap_which
+END
+
+PROGRAM cap_which
+BEGIN
+	if main.rb_capabs {
+		call main.ed_cap.enable
+		call main.ed_capmult.disable
+	}
+	else {
+		call main.ed_cap.disable
+		call main.ed_capmult.enable
+	}
+END
+
+SCRIPT cap_abs
+BEGIN
+	program cap_which
+END
+
+SCRIPT cap_mult
+BEGIN
+	program cap_which
+END
+
+SCRIPT POSTINIT
+BEGIN
+	script rule_winsor
+END
+
+INCLUDE ifin
+
+PROGRAM command
+BEGIN
+	put "rtmweight trim "
+	require main.vn_w
+	varlist main.vn_w
+	INCLUDE _ifin_pr
+	beginoptions
+		require main.ed_gen
+		optionarg main.ed_gen
+		option main.ck_replace
+		if main.rb_winsor {
+			put " rule(winsor)"
+			optionarg main.sp_pct
+			if !main.sp_low.isdefault() {
+				optionarg main.sp_low
+			}
+		}
+		if main.rb_cap {
+			put " rule(cap)"
+			if main.rb_capabs {
+				require main.ed_cap
+				optionarg main.ed_cap
+			}
+			else {
+				require main.ed_capmult
+				optionarg main.ed_capmult
+			}
+		}
+		optionarg main.vl_by
+		option main.ck_nores
+	endoptions
+END

@@ -1,0 +1,255 @@
+/*
+  rtmsample_size.dlg -- rtmtools 0.2.0 (24oct2026)
+  Dialog for: rtmsample size
+*/
+
+VERSION 16.0
+
+INCLUDE _std_medium
+DEFINE _dlght 590
+INCLUDE header
+
+HELP hlp1, view("help rtmsample##size")
+RESET res1
+
+DIALOG main, label("rtmsample size - Sample size per domain") tabtitle("Main")
+BEGIN
+  GROUPBOX gb_ind        _lft    _top    _iwd    115,			///
+	label("Key indicator")
+  RADIO    rb_prop       _ilft   _ss     _ibwd   ., first		///
+	label("A proportion (prevalence) of about:")			///
+	onclickon(script ind_prop)
+  EDIT     ed_p          _iilft  _ss     80      .,			///
+	label("Proportion")						///
+	numonly default(0.5)						///
+	option(p)
+  RADIO    rb_mean       _ilft   _ms     _ibwd   ., last		///
+	label("A mean of about:")					///
+	onclickon(script ind_mean)
+  EDIT     ed_mean       _iilft  _ss     80      .,			///
+	label("Mean")							///
+	numonly default(100)						///
+	option(mean)
+  TEXT     tx_sd         +90     @       165     .,			///
+	label("with standard deviation:")
+  EDIT     ed_sd         +170    @       80      .,			///
+	label("Standard deviation")					///
+	numonly default(40)						///
+	option(sd)
+
+  GROUPBOX gb_tgt        _lft    135     _iwd    160,			///
+	label("Precision target")
+  RADIO    rb_level      _ilft   155     _ibwd   ., first		///
+	label("The level of the indicator, with a margin of error (95% half-width):")	///
+	onclickon(script tgt_level)
+  RADIO    rb_rel        _iilft  175     220     ., first		///
+	label("relative to the estimate, as a fraction (UN 2008: 0.10):")	///
+	onclickon(script prec_rel)
+  EDIT     ed_rel        260     @       70      .,			///
+	label("Relative margin")					///
+	numonly default(0.10)						///
+	option(relmargin)
+  RADIO    rb_abs        _iilft  195     220     ., last		///
+	label("absolute, in the indicator's units:")			///
+	onclickon(script prec_abs)
+  EDIT     ed_abs        260     @       70      .,			///
+	label("Absolute margin")					///
+	numonly							///
+	option(margin)
+  RADIO    rb_change     _ilft   220     _ibwd   ., last		///
+	label("A change between rounds or groups of (signed, same units as the indicator):")	///
+	onclickon(script tgt_change)
+  EDIT     ed_change     _iilft  240     70      .,			///
+	label("Change")							///
+	numonly							///
+	option(change)
+  TEXT     tx_power      +80     @       50      .,			///
+	label("power:")
+  EDIT     ed_power      +55     @       60      .,			///
+	label("Power")							///
+	numonly default(0.8)						///
+	option(power)
+  CHECKBOX ck_onesided   +70     @       130     .,			///
+	label("one-sided test")					///
+	option(onesided)
+  TEXT     tx_level      _ilft   268     160     .,			///
+	label("Confidence level (%):")
+  EDIT     ed_level      +165    @       60      .,			///
+	label("Confidence level")					///
+	numonly default(95)						///
+	option(level)
+
+  GROUPBOX gb_adj        _lft    305     _iwd    110,			///
+	label("Adjustments (UN 2008 formula 3.7)")
+  TEXT     tx_deff       _ilft   325     230     .,			///
+	label("Design effect (UN 2008: 2.0; list sample: about 1):")
+  EDIT     ed_deff       260     @       70      .,			///
+	label("Design effect")						///
+	numonly default(2)						///
+	option(deff)
+  TEXT     tx_nr         _ilft   347     230     .,			///
+	label("Nonresponse multiplier (UN 2008: 1.1):")
+  EDIT     ed_nr         260     @       70      .,			///
+	label("Nonresponse multiplier")					///
+	numonly default(1.1)						///
+	option(nonresponse)
+  TEXT     tx_share      _ilft   369     230     .,			///
+	label("Target group's share of the population:")
+  EDIT     ed_share      260     @       70      .,			///
+	label("Share")							///
+	numonly default(1)						///
+	option(share)
+  TEXT     tx_hh         _ilft   391     230     .,			///
+	label("Average household size (persons):")
+  EDIT     ed_hh         260     @       70      .,			///
+	label("Household size")						///
+	numonly default(1)						///
+	option(hhsize)
+
+  GROUPBOX gb_panel      _lft    425     _iwd    115,			///
+	label("Panel attrition reserve and domains (MPPS 2016)")
+  TEXT     tx_attr       _ilft   445     230     .,			///
+	label("Attrition per round (fraction):")
+  EDIT     ed_attr       260     @       70      .,			///
+	label("Attrition")						///
+	numonly default(0)						///
+	option(attrition)
+  TEXT     tx_rounds     _ilft   467     230     .,			///
+	label("Number of rounds:")
+  SPINNER  sp_rounds     260     @       70      .,			///
+	label("Rounds")							///
+	min(1) max(500) default(1)					///
+	option(rounds)
+  TEXT     tx_first      _ilft   489     230     .,			///
+	label("Loss between baseline and round 1 (fraction):")
+  EDIT     ed_first      260     @       70      .,			///
+	label("First-round loss")					///
+	numonly default(0)						///
+	option(firstloss)
+  TEXT     tx_dom        _ilft   511     230     .,			///
+	label("Number of domains (equal reliability each):")
+  SPINNER  sp_dom        260     @       70      .,			///
+	label("Domains")						///
+	min(1) max(500) default(1)					///
+	option(domains)
+END
+
+SCRIPT ind_prop
+BEGIN
+	main.ed_p.enable
+	main.ed_mean.disable
+	main.ed_sd.disable
+END
+
+SCRIPT ind_mean
+BEGIN
+	main.ed_p.disable
+	main.ed_mean.enable
+	main.ed_sd.enable
+END
+
+SCRIPT tgt_level
+BEGIN
+	main.rb_rel.enable
+	main.rb_abs.enable
+	main.ed_change.disable
+	main.ed_power.disable
+	main.ck_onesided.disable
+	program prec_which
+END
+
+SCRIPT tgt_change
+BEGIN
+	main.rb_rel.disable
+	main.rb_abs.disable
+	main.ed_rel.disable
+	main.ed_abs.disable
+	main.ed_change.enable
+	main.ed_power.enable
+	main.ck_onesided.enable
+END
+
+PROGRAM prec_which
+BEGIN
+	if main.rb_rel {
+		call main.ed_rel.enable
+		call main.ed_abs.disable
+	}
+	else {
+		call main.ed_rel.disable
+		call main.ed_abs.enable
+	}
+END
+
+SCRIPT prec_rel
+BEGIN
+	program prec_which
+END
+
+SCRIPT prec_abs
+BEGIN
+	program prec_which
+END
+
+SCRIPT POSTINIT
+BEGIN
+	script ind_prop
+	script tgt_level
+END
+
+PROGRAM command
+BEGIN
+	put "rtmsample size"
+	beginoptions
+		if main.rb_prop {
+			require main.ed_p
+			optionarg main.ed_p
+		}
+		else {
+			require main.ed_mean
+			require main.ed_sd
+			optionarg main.ed_mean
+			optionarg main.ed_sd
+		}
+		if main.rb_level {
+			if main.rb_rel {
+				if !main.ed_rel.isdefault() {
+					optionarg main.ed_rel
+				}
+			}
+			else {
+				require main.ed_abs
+				optionarg main.ed_abs
+			}
+		}
+		else {
+			require main.ed_change
+			optionarg main.ed_change
+			optionarg main.ed_power
+			option main.ck_onesided
+		}
+		if !main.ed_level.isdefault() {
+			optionarg main.ed_level
+		}
+		optionarg main.ed_deff
+		optionarg main.ed_nr
+		if !main.ed_share.isdefault() {
+			optionarg main.ed_share
+		}
+		if !main.ed_hh.isdefault() {
+			optionarg main.ed_hh
+		}
+		if !main.ed_attr.isdefault() {
+			optionarg main.ed_attr
+		}
+		if !main.sp_rounds.isdefault() {
+			optionarg main.sp_rounds
+		}
+		if !main.ed_first.isdefault() {
+			optionarg main.ed_first
+		}
+		if !main.sp_dom.isdefault() {
+			optionarg main.sp_dom
+		}
+	endoptions
+END

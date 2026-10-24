@@ -1,0 +1,12 @@
+# rtm_roundtrip.R -- reads a .dta with haven and writes it back unchanged (test of the bridge)
+args <- commandArgs(trailingOnly = TRUE)
+cfg <- readLines(args[1], warn = FALSE)
+kv <- strsplit(cfg, "=", fixed = TRUE)
+cfg <- setNames(vapply(kv, function(x) paste(x[-1], collapse = "="), ""), vapply(kv, `[`, "", 1))
+res <- tryCatch({
+  suppressPackageStartupMessages(library(haven))
+  d <- haven::read_dta(cfg[["in"]])
+  haven::write_dta(d, cfg[["out"]], version = 14)
+  writeLines(c("ok", sprintf("haven %s round trip, %d rows", as.character(packageVersion("haven")), nrow(d))), cfg[["status"]])
+}, error = function(e) writeLines(c("error", conditionMessage(e)), cfg[["status"]]))
+quit(status = 0)

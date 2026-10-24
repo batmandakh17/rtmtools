@@ -1,0 +1,206 @@
+/*
+  rtmsample_draw.dlg -- rtmtools 0.2.0 (24oct2026)
+  Dialog for: rtmsample draw
+*/
+
+VERSION 16.0
+
+INCLUDE _std_medium
+DEFINE _dlght 540
+INCLUDE header
+
+HELP hlp1, view("help rtmsample##draw")
+RESET res1
+
+DIALOG main, label("rtmsample draw - Draw a sample from the frame in memory") tabtitle("Main")
+BEGIN
+  GROUPBOX gb_n          _lft    _top    _iwd    70,			///
+	label("Sample size per stratum (the whole frame if no strata)")
+  RADIO    rb_nnum       _ilft   _ss     130     ., first		///
+	label("a number:")						///
+	onclickon(script n_num)
+  EDIT     ed_n          150     @       80      .,			///
+	label("Sample size")						///
+	numonly							///
+	option(n)
+  RADIO    rb_nvar       _ilft   _ms     130     ., last		///
+	label("a variable:")						///
+	onclickon(script n_var)
+  VARNAME  vn_n          150     @       _vnwd   .,			///
+	label("Sample size variable (constant within strata)")	///
+	option(n)
+
+  TEXT     tx_strata     _lft    +40     _iwd    .,			///
+	label("Strata (optional; the draw is independent within each):")
+  VARLIST  vl_strata     @       _ss     _iwd    .,			///
+	label("Strata")							///
+	option(strata)
+
+  GROUPBOX gb_meth       _lft    _xls    _iwd    160,			///
+	label("Selection method")
+  RADIO    rb_srs        _ilft   _ss     _ibwd   ., first		///
+	label("Simple random sampling without replacement (gsample)")	///
+	onclickon(script m_srs)
+  RADIO    rb_sys        _ilft   _ss     _ibwd   .,			///
+	label("Systematic, equal probability, on the sorted frame (implicit stratification)")	///
+	onclickon(script m_sys)
+  RADIO    rb_ppssys     _ilft   _ss     _ibwd   .,			///
+	label("Systematic PPS on the sorted frame (UN 2008 para 180; Grosh and Munoz 1996)")	///
+	onclickon(script m_ppssys)
+  RADIO    rb_pps        _ilft   _ss     _ibwd   ., last		///
+	label("PPS without replacement, random systematic (gsample; Hartley and Rao 1962)")	///
+	onclickon(script m_pps)
+  TEXT     tx_pps        _iilft  _ms     150     .,			///
+	label("Measure of size:")
+  VARNAME  vn_pps        +155    @       _vnwd   .,			///
+	label("Measure of size")					///
+	option(pps)
+  TEXT     tx_sort       _iilft  _ms     150     .,			///
+	label("Sort within strata by:")
+  VARLIST  vl_sort       +155    @       200     .,			///
+	label("Sort order")						///
+	option(sort)
+
+  GROUPBOX gb_res        _lft    +40     _iwd    70,			///
+	label("Reserve units per stratum, flagged for replacement (UN 2008: substitution is biased; prefer oversampling)")
+  RADIO    rb_rnum       _ilft   _ss     130     ., first		///
+	label("a number (0 = none):")					///
+	onclickon(script r_num)
+  EDIT     ed_res        150     @       80      .,			///
+	label("Reserve")						///
+	numonly default(0)						///
+	option(reserve)
+  RADIO    rb_rvar       _ilft   _ms     130     ., last		///
+	label("a variable:")						///
+	onclickon(script r_var)
+  VARNAME  vn_res        150     @       _vnwd   .,			///
+	label("Reserve variable")					///
+	option(reserve)
+
+  TEXT     tx_seed       _lft    +40     250     .,			///
+	label("Seed (blank: chosen at random and reported):")
+  EDIT     ed_seed       260     @       120     .,			///
+	label("Seed")							///
+	numonly							///
+	option(seed)
+  TEXT     tx_gen        _lft    _ms     250     .,			///
+	label("Prefix of the new variables (_sel _pi _w _order _reserve):")
+  EDIT     ed_gen        260     @       120     .,			///
+	label("Prefix")							///
+	default(smp)							///
+	option(generate)
+  CHECKBOX ck_replace    _lft    _ms     200     .,			///
+	label("Replace them if they exist")				///
+	option(replace)
+  TEXT     tx_id         _lft    _ms     250     .,			///
+	label("Unit identifier, checked for duplicates (optional):")
+  VARLIST  vl_id         260     @       120     .,			///
+	label("Identifier")						///
+	option(id)
+END
+
+SCRIPT n_num
+BEGIN
+	main.ed_n.enable
+	main.vn_n.disable
+END
+
+SCRIPT n_var
+BEGIN
+	main.ed_n.disable
+	main.vn_n.enable
+END
+
+SCRIPT r_num
+BEGIN
+	main.ed_res.enable
+	main.vn_res.disable
+END
+
+SCRIPT r_var
+BEGIN
+	main.ed_res.disable
+	main.vn_res.enable
+END
+
+SCRIPT m_srs
+BEGIN
+	main.vn_pps.disable
+	main.vl_sort.disable
+END
+
+SCRIPT m_sys
+BEGIN
+	main.vn_pps.disable
+	main.vl_sort.enable
+END
+
+SCRIPT m_ppssys
+BEGIN
+	main.vn_pps.enable
+	main.vl_sort.enable
+END
+
+SCRIPT m_pps
+BEGIN
+	main.vn_pps.enable
+	main.vl_sort.disable
+END
+
+SCRIPT POSTINIT
+BEGIN
+	script n_num
+	script r_num
+	script m_srs
+END
+
+INCLUDE ifin
+
+PROGRAM command
+BEGIN
+	put "rtmsample draw "
+	INCLUDE _ifin_pr
+	beginoptions
+		if main.rb_nnum {
+			require main.ed_n
+			optionarg main.ed_n
+		}
+		else {
+			require main.vn_n
+			optionarg main.vn_n
+		}
+		require main.ed_gen
+		optionarg main.ed_gen
+		optionarg main.vl_strata
+		if main.rb_srs {
+			put " method(srs)"
+		}
+		if main.rb_sys {
+			put " method(systematic)"
+			optionarg main.vl_sort
+		}
+		if main.rb_ppssys {
+			put " method(ppssys)"
+			require main.vn_pps
+			optionarg main.vn_pps
+			optionarg main.vl_sort
+		}
+		if main.rb_pps {
+			put " method(pps)"
+			require main.vn_pps
+			optionarg main.vn_pps
+		}
+		if main.rb_rnum {
+			if !main.ed_res.isdefault() {
+				optionarg main.ed_res
+			}
+		}
+		else {
+			require main.vn_res
+			optionarg main.vn_res
+		}
+		optionarg main.ed_seed
+		optionarg main.vl_id
+		option main.ck_replace
+	endoptions
+END
