@@ -90,6 +90,10 @@ do 04_weights.do
 
 The Results window prints each step's summary. The runs are in `export_dir`: one folder per step with `manifest.json` (what ran, when, with which settings and sources, the key results), `manifest.csv` (the same, flat), the CSV tables, and `rtm_display.xlsx` (the Excel display of that step; open it, nothing to set up). The dashboard: run `rtmtools_dashboard` in Stata if the package is installed, or open `rtmtools_dashboard.html` from the package in a browser and use "Open an export folder" to point it at `export_dir`.
 
+A note on `clear all`: the do-file starts with it, so anything in memory before the run (data,
+matrices, programs you defined) is gone; run it from a fresh session or from a wrapper do-file
+that loads what you need afterwards.
+
 ## 5. Common messages
 
 | Message | Cause | What to do |
