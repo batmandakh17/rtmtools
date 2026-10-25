@@ -59,11 +59,16 @@ program define rtmtools_dashboard, rclass
     di as txt `"Dashboard written: {browse "`html'"}"'
     di as txt `"It reads `base' in the same folder and refreshes itself while rtmtools commands run."'
     if "`nobrowser'" == "" {
-        local url : subinstr local html " " "%20", all
-        if substr(`"`url'"', 1, 1) == "/" local url `"file://`url'"'
-        else local url `"file:///`url'"'
-        capture view browse `"`url'"'
+        * hand the file to the operating system's default browser (never to Stata's own viewer,
+        * which is not a web browser and cannot show the page)
+        if "`c(os)'" == "Windows" {
+            local winpath : subinstr local html "/" "\", all
+            capture winexec rundll32 url.dll,FileProtocolHandler "`winpath'"
+        }
+        else if strpos("`c(machine_type)'", "Mac") capture shell open "`html'"
+        else capture shell xdg-open "`html'" > /dev/null 2>&1 &
         if _rc di as txt "(the browser could not be opened from here; open the file above by hand)"
+        else di as txt "Opening the page in your browser. It stays open and refreshes itself; close it when done."
     }
     return local html `"`html'"'
     return local log `"`log'"'
