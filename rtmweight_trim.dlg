@@ -5,8 +5,8 @@
 
 VERSION 16.0
 
-INCLUDE _std_medium
-DEFINE _dlght 400
+INCLUDE _std_xxwide
+DEFINE _dlght 440
 INCLUDE header
 
 HELP hlp1, view("help rtmweight##trim")
@@ -28,19 +28,19 @@ BEGIN
 	label("Replace it if it exists")				///
 	option(replace)
 
-  GROUPBOX gb_rule       _lft    _xls    _iwd    165,		///
+  GROUPBOX gb_rule       _lft    _xls    _iwd    205,		///
 	label("Rule")
   RADIO    rb_winsor     _ilft   _ss     _ibwd   ., first		///
-	label("Winsorize: weights above a percentile are set to that percentile (HFPS Vol. 2: 98th; Ambel et al. 2021: 2nd and 98th)")	///
+	label("Winsorize: weights above a percentile are set to it (HFPS Vol. 2: 98th; Ambel et al. 2021: 2nd and 98th)")	///
 	onclickon(script rule_winsor)
   TEXT     tx_pct        _iilft _ss    120     .,			///
 	label("Upper percentile:")
   SPINNER  sp_pct        +125    @       _spwd   .,			///
 	min(51) max(99) default(98)					///
 	option(pct)
-  TEXT     tx_low        _iilft _ms    120     .,			///
+  TEXT     tx_low        _iilft _ms    166     .,			///
 	label("Lower percentile (0 = none):")
-  SPINNER  sp_low        +125    @       _spwd   .,			///
+  SPINNER  sp_low        +172    @       _spwd   .,			///
 	min(0) max(49) default(0)					///
 	option(lowpct)
   RADIO    rb_cap        _ilft   _ls     _ibwd   ., last		///

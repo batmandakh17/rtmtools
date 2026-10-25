@@ -5,7 +5,7 @@
 
 VERSION 16.0
 
-INCLUDE _std_medium
+INCLUDE _std_xxwide
 DEFINE _dlght 440
 INCLUDE header
 
@@ -19,9 +19,9 @@ BEGIN
   FILE     fi_file       @       _ss     _iwd    .,			///
 	label("Browse...")						///
 	filter("Data (*.dta;*.csv;*.xlsx)|*.dta;*.csv;*.xlsx|All files (*.*)|*.*")
-  TEXT     tx_sheet      _lft    _ls     250     .,			///
+  TEXT     tx_sheet      _lft    _ls     271     .,			///
 	label("Sheet name (Excel files; blank = the first sheet):")
-  EDIT     ed_sheet      260     @       150     .,			///
+  EDIT     ed_sheet      287     @       150     .,			///
 	label("Sheet")							///
 	option(sheet)
   TEXT     tx_id         _lft    _ls     _iwd    .,			///
@@ -48,9 +48,9 @@ BEGIN
 	label("Structure column")					///
 	default(structure_no)						///
 	option(structure)
-  TEXT     tx_hv         _lft    _ms     120     .,			///
+  TEXT     tx_hv         _lft    _ms     70      .,			///
 	label("household:")
-  EDIT     ed_hv         +60     @       100     .,			///
+  EDIT     ed_hv         +76     @       100     .,			///
 	label("Household column")					///
 	default(household_no)						///
 	option(household)
@@ -76,7 +76,7 @@ BEGIN
   CHECKBOX ck_replace    _lft    _ls     200     .,			///
 	label("Replace the file if it exists")				///
 	option(replace)
-  CHECKBOX ck_clear      +210    @       300     .,			///
+  CHECKBOX ck_clear      +210    @       341     .,			///
 	label("Put the household frame in memory (replaces the areas)")	///
 	option(clear)
 END

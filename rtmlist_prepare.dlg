@@ -5,7 +5,7 @@
 
 VERSION 16.0
 
-INCLUDE _std_medium
+INCLUDE _std_xxwide
 DEFINE _dlght 360
 INCLUDE header
 
@@ -29,15 +29,15 @@ BEGIN
   VARLIST  vl_str        @       _ss     _iwd    .,			///
 	label("Strata")							///
 	option(strata)
-  TEXT     tx_seg        _lft    _ls     250     .,			///
+  TEXT     tx_seg        _lft    _ls     475     .,			///
 	label("Segment size in households (0 = no segmentation; UN 2008: standard segments):")
-  EDIT     ed_seg        260     @       80      .,			///
+  EDIT     ed_seg        491     @       80      .,			///
 	label("Segment size")						///
 	numonly default(0)						///
 	option(segmentsize)
-  TEXT     tx_seed       _lft    _ls     250     .,			///
+  TEXT     tx_seed       _lft    _ls     475     .,			///
 	label("Seed for the segment choice (blank: random, reported):")
-  EDIT     ed_seed       260     @       120     .,			///
+  EDIT     ed_seed       491     @       120     .,			///
 	label("Seed")							///
 	numonly							///
 	option(seed)

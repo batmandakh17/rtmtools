@@ -5,7 +5,7 @@
 
 VERSION 16.0
 
-INCLUDE _std_medium
+INCLUDE _std_xxwide
 DEFINE _dlght 460
 INCLUDE header
 
@@ -80,9 +80,9 @@ BEGIN
   SPINNER  sp_ng         +210    @       _spwd   .,			///
 	min(2) max(50) default(10)					///
 	option(ngroups)
-  TEXT     tx_mom        _lft    _ls     200     .,			///
+  TEXT     tx_mom        _lft    _ls     377     .,			///
 	label("Balancing moments (1 = means, 2 = + variances, 3 = + skewness):")
-  SPINNER  sp_mom        +210    @       _spwd   .,			///
+  SPINNER  sp_mom        +383    @       _spwd   .,			///
 	min(1) max(3) default(1)					///
 	option(moments)
   TEXT     tx_cls        _lft    _ls     _iwd    .,			///
@@ -101,9 +101,9 @@ BEGIN
 	label("Browse...")						///
 	filter("Stata data (*.dta)|*.dta|All files (*.*)|*.*")		///
 	option(cellfile)
-  TEXT     tx_ct         _lft    _ls     200     .,			///
+  TEXT     tx_ct         _lft    _ls     213     .,			///
 	label("Name of the total variable in that file:")
-  EDIT     ed_ct         +210    @       _vnwd   .,			///
+  EDIT     ed_ct         +219    @       _vnwd   .,			///
 	label("Total variable")						///
 	default(total)							///
 	option(celltotal)

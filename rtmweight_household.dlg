@@ -5,7 +5,7 @@
 
 VERSION 16.0
 
-INCLUDE _std_medium
+INCLUDE _std_xxwide
 DEFINE _dlght 380
 INCLUDE header
 
@@ -33,7 +33,7 @@ BEGIN
 	label("Replace them if they exist")				///
 	option(replace)
   TEXT     tx_note       _lft    _xls    _iwd    .,			///
-	label("Program practice (L2PHL scripts), not a guideline method: see the help for what the PSU average and the rescaling change.")
+	label("Program practice (L2PHL), not a guideline method; the help says what the PSU average and rescaling change.")
 END
 
 DIALOG opts, tabtitle("Settings")

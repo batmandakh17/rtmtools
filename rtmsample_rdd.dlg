@@ -5,7 +5,7 @@
 
 VERSION 16.0
 
-INCLUDE _std_medium
+INCLUDE _std_xxwide
 DEFINE _dlght 330
 INCLUDE header
 
@@ -24,15 +24,15 @@ BEGIN
   EDIT     ed_n          @       _ss     _iwd    .,			///
 	label("Numbers per prefix")					///
 	option(n)
-  TEXT     tx_dig        _lft    _ls     250     .,			///
+  TEXT     tx_dig        _lft    _ls     265     .,			///
 	label("Random digits after the prefix:")
-  SPINNER  sp_dig        260     @       70      .,			///
+  SPINNER  sp_dig        281     @       70      .,			///
 	label("Digits")							///
 	min(1) max(12) default(7)					///
 	option(digits)
-  TEXT     tx_seed       _lft    _ls     250     .,			///
+  TEXT     tx_seed       _lft    _ls     265     .,			///
 	label("Seed (blank: chosen at random and reported):")
-  EDIT     ed_seed       260     @       120     .,			///
+  EDIT     ed_seed       281     @       120     .,			///
 	label("Seed")							///
 	numonly							///
 	option(seed)

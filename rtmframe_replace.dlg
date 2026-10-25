@@ -5,7 +5,7 @@
 
 VERSION 16.0
 
-INCLUDE _std_medium
+INCLUDE _std_xxwide
 DEFINE _dlght 340
 INCLUDE header
 
@@ -39,25 +39,25 @@ BEGIN
 	values(adj_vals)						///
 	default(queen)							///
 	option(adjacency)
-  TEXT     tx_sel        _lft    _ls     250     .,			///
+  TEXT     tx_sel        _lft    _ls     290     .,			///
 	label("Selection flag (1 = already in the sample; optional):")
-  VARNAME  vn_sel        260     @       _vnwd   .,			///
+  VARNAME  vn_sel        306     @       _vnwd   .,			///
 	label("Selected")						///
 	option(selected)
-  TEXT     tx_exc        _lft    _ls     250     .,			///
+  TEXT     tx_exc        _lft    _ls     290     .,			///
 	label("Exclusion flag (1 = cannot be used; optional):")
-  VARNAME  vn_exc        260     @       _vnwd   .,			///
+  VARNAME  vn_exc        306     @       _vnwd   .,			///
 	label("Excluded")						///
 	option(exclude)
-  TEXT     tx_nc         _lft    _ls     250     .,			///
+  TEXT     tx_nc         _lft    _ls     290     .,			///
 	label("Candidates per cell:")
-  SPINNER  sp_nc         260     @       70      .,			///
+  SPINNER  sp_nc         306     @       70      .,			///
 	label("Candidates")						///
 	min(1) max(20) default(3)					///
 	option(ncand)
-  TEXT     tx_gen        _lft    _ls     250     .,			///
+  TEXT     tx_gen        _lft    _ls     290     .,			///
 	label("Prefix of the new variables (_for _rank; optional):")
-  EDIT     ed_gen        260     @       120     .,			///
+  EDIT     ed_gen        306     @       120     .,			///
 	label("Prefix")							///
 	option(generate)
   TEXT     tx_sav        _lft    _ls     _iwd    .,			///

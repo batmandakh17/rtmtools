@@ -5,7 +5,7 @@
 
 VERSION 16.0
 
-INCLUDE _std_medium
+INCLUDE _std_xxwide
 DEFINE _dlght 400
 INCLUDE header
 
@@ -61,7 +61,7 @@ BEGIN
   GROUPBOX gb_tot        _lft    _xls    _iwd    125,		///
 	label("Population totals")
   RADIO    rb_pairs      _ilft   _ss     _ibwd   ., first		///
-	label("Typed as level.variable=total pairs or a matrix name, e.g. 1.region=14781 2.region=15345 0.urban=31458 1.urban=28373")	///
+	label("Typed as level.variable=total pairs or a matrix name, e.g. 1.region=14781 0.urban=31458")	///
 	onclickon(script tot_pairs)
   EDIT     ed_tot        _iilft _ss    _ibwd   .,			///
 	label("Totals")							///
@@ -95,7 +95,7 @@ BEGIN
 	option(engine)							///
 	onselchange(program eng_changed)
   TEXT     tx_bnd        _lft    _ls     _iwd    .,			///
-	label("Bounds on the weight ratios (optional; no cited default): lower and upper limit (method regress: truncated linear; ipfraking: trimming)")
+	label("Bounds on the weight ratios (optional; no cited default; see the help): lower and upper limit")
   TEXT     tx_ll         _lft    _ss     60      .,			///
 	label("Lower:")
   EDIT     ed_ll         +60     @       60  .,			///

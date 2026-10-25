@@ -5,7 +5,7 @@
 
 VERSION 16.0
 
-INCLUDE _std_medium
+INCLUDE _std_xxwide
 DEFINE _dlght 470
 INCLUDE header
 
@@ -19,9 +19,9 @@ BEGIN
   VARLIST  vl_strata     @       _ss     _iwd    .,			///
 	label("Strata")							///
 	option(strata)
-  TEXT     tx_n          _lft    _ls     250     .,			///
+  TEXT     tx_n          _lft    _ls     431     .,			///
 	label("Total sample to allocate (n):")
-  EDIT     ed_n          260     @       100     .,			///
+  EDIT     ed_n          447     @       100     .,			///
 	label("Total sample")						///
 	numonly							///
 	option(n)
@@ -53,15 +53,15 @@ BEGIN
 	numonly default(0.5)						///
 	option(power)
 
-  TEXT     tx_min        _lft    +45     250     .,			///
+  TEXT     tx_min        _lft    +45     431     .,			///
 	label("Minimum per stratum (0 = none; LSMS: 300-400 households per domain):")
-  EDIT     ed_min        260     @       100     .,			///
+  EDIT     ed_min        447     @       100     .,			///
 	label("Minimum")						///
 	numonly default(0)						///
 	option(min)
-  TEXT     tx_max        _lft    _ms     250     .,			///
+  TEXT     tx_max        _lft    _ms     431     .,			///
 	label("Maximum per stratum (0 = none):")
-  EDIT     ed_max        260     @       100     .,			///
+  EDIT     ed_max        447     @       100     .,			///
 	label("Maximum")						///
 	numonly default(0)						///
 	option(max)
@@ -70,15 +70,15 @@ BEGIN
   VARNAME  vn_units      @       _ss     _vnwd   .,			///
 	label("Units per stratum")					///
 	option(units)
-  TEXT     tx_gen        _lft    _ls     250     .,			///
+  TEXT     tx_gen        _lft    _ls     431     .,			///
 	label("Write the allocated n_h to a new variable (optional):")
-  EDIT     ed_gen        260     @       _vnwd   .,			///
+  EDIT     ed_gen        447     @       _vnwd   .,			///
 	label("New variable")						///
 	option(generate)
-  CHECKBOX ck_replace    _lft    _ms     180     .,			///
+  CHECKBOX ck_replace    _lft    _ms     184     .,			///
 	label("Replace it if it exists")				///
 	option(replace)
-  CHECKBOX ck_noround    200     @       200     .,			///
+  CHECKBOX ck_noround    200     @       203     .,			///
 	label("Do not round to whole numbers")				///
 	option(noround)
 END

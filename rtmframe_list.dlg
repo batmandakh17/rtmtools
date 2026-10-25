@@ -5,7 +5,7 @@
 
 VERSION 16.0
 
-INCLUDE _std_medium
+INCLUDE _std_xxwide
 DEFINE _dlght 440
 INCLUDE header
 
@@ -19,19 +19,19 @@ BEGIN
   VARLIST  vl_id         @       _ss     _iwd    .,			///
 	label("Identifier")						///
 	option(id)
-  TEXT     tx_size       _lft    _ls     200     .,			///
+  TEXT     tx_size       _lft    _ls     223     .,			///
 	label("Measure of size (households):")
-  VARNAME  vn_size       210     @       _vnwd   .,			///
+  VARNAME  vn_size       239     @       _vnwd   .,			///
 	label("Measure of size")					///
 	option(size)
-  TEXT     tx_strata     _lft    _ms     200     .,			///
+  TEXT     tx_strata     _lft    _ms     223     .,			///
 	label("Strata (for the summary table):")
-  VARLIST  vl_strata     210     @       _vnwd   .,			///
+  VARLIST  vl_strata     239     @       _vnwd   .,			///
 	label("Strata")							///
 	option(strata)
-  TEXT     tx_excl       _lft    _ms     200     .,			///
+  TEXT     tx_excl       _lft    _ms     223     .,			///
 	label("Exclusion flag (1 = not covered):")
-  VARNAME  vn_excl       210     @       _vnwd   .,			///
+  VARNAME  vn_excl       239     @       _vnwd   .,			///
 	label("Exclusion flag")						///
 	option(exclude)
 
@@ -54,27 +54,27 @@ BEGIN
   EDIT     ed_merge      270     @       100     .,			///
 	label("Combined unit variable")					///
 	option(merge)
-  TEXT     tx_sort       _lft    +40     200     .,			///
+  TEXT     tx_sort       _lft    +40     223     .,			///
 	label("Sort order for combining (geographic):")
-  VARLIST  vl_sort       210     @       _vnwd   .,			///
+  VARLIST  vl_sort       239     @       _vnwd   .,			///
 	label("Sort order")						///
 	option(sort)
 
   GROUPBOX gb_counts     _lft    _xls    _iwd    95,			///
 	label("Consistency of population counts (optional)")
-  TEXT     tx_persons    _ilft   _ss     200     .,			///
+  TEXT     tx_persons    _ilft   _ss     213     .,			///
 	label("Persons:")
-  VARNAME  vn_persons    210     @       _vnwd   .,			///
+  VARNAME  vn_persons    239     @       _vnwd   .,			///
 	label("Persons")						///
 	option(persons)
-  TEXT     tx_males      _ilft   _ms     200     .,			///
+  TEXT     tx_males      _ilft   _ms     213     .,			///
 	label("Males:")
-  VARNAME  vn_males      210     @       _vnwd   .,			///
+  VARNAME  vn_males      239     @       _vnwd   .,			///
 	label("Males")							///
 	option(males)
-  TEXT     tx_females    _ilft   _ms     200     .,			///
+  TEXT     tx_females    _ilft   _ms     213     .,			///
 	label("Females:")
-  VARNAME  vn_females    210     @       _vnwd   .,			///
+  VARNAME  vn_females    239     @       _vnwd   .,			///
 	label("Females")						///
 	option(females)
   CHECKBOX ck_replace    _lft    +35     _iwd    .,			///

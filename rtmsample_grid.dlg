@@ -5,7 +5,7 @@
 
 VERSION 16.0
 
-INCLUDE _std_medium
+INCLUDE _std_xxwide
 DEFINE _dlght 420
 INCLUDE header
 
@@ -34,32 +34,32 @@ BEGIN
   VARNAME  vn_pps        @       _ss     _vnwd   .,			///
 	label("Measure of size")					///
 	option(pps)
-  TEXT     tx_bands      _lft    _ls     250     .,			///
+  TEXT     tx_bands      _lft    _ls     363     .,			///
 	label("Horizontal bands of the serpentine order (0 = about sqrt(units)):")
-  SPINNER  sp_bands      260     @       70      .,			///
+  SPINNER  sp_bands      379     @       70      .,			///
 	label("Bands")							///
 	min(0) max(1000) default(0)					///
 	option(bands)
-  TEXT     tx_res        _lft    _ls     250     .,			///
+  TEXT     tx_res        _lft    _ls     363     .,			///
 	label("Reserve units per stratum (next in the order; 0 = none; or 'all'):")
-  EDIT     ed_res        260     @       80      .,			///
+  EDIT     ed_res        379     @       80      .,			///
 	label("Reserve")						///
 	default(0)							///
 	option(reserve)
-  TEXT     tx_seed       _lft    _ls     250     .,			///
+  TEXT     tx_seed       _lft    _ls     363     .,			///
 	label("Seed (blank: chosen at random and reported):")
-  EDIT     ed_seed       260     @       120     .,			///
+  EDIT     ed_seed       379     @       120     .,			///
 	label("Seed")							///
 	numonly							///
 	option(seed)
-  TEXT     tx_id         _lft    _ls     250     .,			///
+  TEXT     tx_id         _lft    _ls     363     .,			///
 	label("Unit identifier (optional, for the export):")
-  VARLIST  vl_id         260     @       120     .,			///
+  VARLIST  vl_id         379     @       120     .,			///
 	label("Identifier")						///
 	option(id)
-  TEXT     tx_gen        _lft    _ls     250     .,			///
+  TEXT     tx_gen        _lft    _ls     363     .,			///
 	label("Prefix of the new variables (_sel _pi _w _order _reserve):")
-  EDIT     ed_gen        260     @       120     .,			///
+  EDIT     ed_gen        379     @       120     .,			///
 	label("Prefix")							///
 	default(g)							///
 	option(generate)

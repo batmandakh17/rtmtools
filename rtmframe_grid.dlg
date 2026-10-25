@@ -5,7 +5,7 @@
 
 VERSION 16.0
 
-INCLUDE _std_medium
+INCLUDE _std_xxwide
 DEFINE _dlght 470
 INCLUDE header
 
@@ -25,31 +25,31 @@ BEGIN
 	label("Browse...")						///
 	filter("ESRI ASCII grid (*.asc)|*.asc|All files (*.*)|*.*")	///
 	option(raster)
-  TEXT     tx_cs         _lft    _ls     250     .,			///
+  TEXT     tx_cs         _lft    _ls     381     .,			///
 	label("Cell size (metres):")
-  EDIT     ed_cs         260     @       100     .,			///
+  EDIT     ed_cs         397     @       100     .,			///
 	label("Cell size")						///
 	numonly default(5000)						///
 	option(cellsize)
-  TEXT     tx_str        _lft    _ls     250     .,			///
+  TEXT     tx_str        _lft    _ls     381     .,			///
 	label("Stratum: an attribute of the shapefile (optional):")
-  EDIT     ed_str        260     @       150     .,			///
+  EDIT     ed_str        397     @       150     .,			///
 	label("Stratum attribute")					///
 	option(strata)
-  TEXT     tx_id         _lft    _ls     250     .,			///
+  TEXT     tx_id         _lft    _ls     381     .,			///
 	label("Unit name: an attribute of the shapefile (optional):")
-  EDIT     ed_id         260     @       150     .,			///
+  EDIT     ed_id         397     @       150     .,			///
 	label("Unit attribute")						///
 	option(id)
-  TEXT     tx_min        _lft    _ls     250     .,			///
+  TEXT     tx_min        _lft    _ls     381     .,			///
 	label("Flag cells with population below (0 = no flag):")
-  EDIT     ed_min        260     @       100     .,			///
+  EDIT     ed_min        397     @       100     .,			///
 	label("Minimum population")					///
 	numonly default(0)						///
 	option(minsize)
-  TEXT     tx_blk        _lft    _ls     250     .,			///
+  TEXT     tx_blk        _lft    _ls     381     .,			///
 	label("Aggregate pixels into blocks of (1 = none; speeds up large rasters):")
-  SPINNER  sp_blk        260     @       70      .,			///
+  SPINNER  sp_blk        397     @       70      .,			///
 	label("Blocks")							///
 	min(1) max(100) default(1)					///
 	option(blocks)

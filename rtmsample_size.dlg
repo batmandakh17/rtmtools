@@ -5,7 +5,7 @@
 
 VERSION 16.0
 
-INCLUDE _std_medium
+INCLUDE _std_xxwide
 DEFINE _dlght 590
 INCLUDE header
 
@@ -60,77 +60,77 @@ BEGIN
 	option(onesided)
   TEXT     tx_marg       _ilft   222     _ibwd   .,			///
 	label("Margin of error for the level:")
-  RADIO    rb_rel        _iilft  242     220     ., first		///
+  RADIO    rb_rel        _iilft  242     333     ., first		///
 	label("relative to the estimate, as a fraction (UN 2008: 0.10):")	///
 	onclickon(script prec_rel)
-  EDIT     ed_rel        260     @       70      .,			///
+  EDIT     ed_rel        369     @       70      .,			///
 	label("Relative margin")					///
 	numonly default(0.10)						///
 	option(relmargin)
-  RADIO    rb_abs        _iilft  262     220     ., last		///
+  RADIO    rb_abs        _iilft  262     333     ., last		///
 	label("absolute, in the indicator's units:")			///
 	onclickon(script prec_abs)
-  EDIT     ed_abs        260     @       70      .,			///
+  EDIT     ed_abs        369     @       70      .,			///
 	label("Absolute margin")					///
 	numonly							///
 	option(margin)
-  TEXT     tx_level      +90     @       120     .,			///
+  TEXT     tx_level      +90     @       128     .,			///
 	label("Confidence level (%):")
-  EDIT     ed_level      +125    @       50      .,			///
+  EDIT     ed_level      +134    @       50      .,			///
 	label("Confidence level")					///
 	numonly default(95)						///
 	option(level)
 
   GROUPBOX gb_adj        _lft    305     _iwd    110,			///
 	label("Adjustments (UN 2008 formula 3.7)")
-  TEXT     tx_deff       _ilft   325     230     .,			///
+  TEXT     tx_deff       _ilft   325     343     .,			///
 	label("Design effect (UN 2008: 2.0; list sample: about 1):")
-  EDIT     ed_deff       260     @       70      .,			///
+  EDIT     ed_deff       369     @       70      .,			///
 	label("Design effect")						///
 	numonly default(2)						///
 	option(deff)
-  TEXT     tx_nr         _ilft   347     230     .,			///
+  TEXT     tx_nr         _ilft   347     343     .,			///
 	label("Nonresponse multiplier (UN 2008: 1.1):")
-  EDIT     ed_nr         260     @       70      .,			///
+  EDIT     ed_nr         369     @       70      .,			///
 	label("Nonresponse multiplier")					///
 	numonly default(1.1)						///
 	option(nonresponse)
-  TEXT     tx_share      _ilft   369     230     .,			///
+  TEXT     tx_share      _ilft   369     343     .,			///
 	label("Target group's share of the population:")
-  EDIT     ed_share      260     @       70      .,			///
+  EDIT     ed_share      369     @       70      .,			///
 	label("Share")							///
 	numonly default(1)						///
 	option(share)
-  TEXT     tx_hh         _ilft   391     230     .,			///
+  TEXT     tx_hh         _ilft   391     343     .,			///
 	label("Average household size (persons):")
-  EDIT     ed_hh         260     @       70      .,			///
+  EDIT     ed_hh         369     @       70      .,			///
 	label("Household size")						///
 	numonly default(1)						///
 	option(hhsize)
 
   GROUPBOX gb_panel      _lft    425     _iwd    115,			///
 	label("Panel attrition reserve and domains (MPPS 2016)")
-  TEXT     tx_attr       _ilft   445     230     .,			///
+  TEXT     tx_attr       _ilft   445     343     .,			///
 	label("Attrition per round (fraction):")
-  EDIT     ed_attr       260     @       70      .,			///
+  EDIT     ed_attr       369     @       70      .,			///
 	label("Attrition")						///
 	numonly default(0)						///
 	option(attrition)
-  TEXT     tx_rounds     _ilft   467     230     .,			///
+  TEXT     tx_rounds     _ilft   467     343     .,			///
 	label("Number of rounds:")
-  SPINNER  sp_rounds     260     @       70      .,			///
+  SPINNER  sp_rounds     369     @       70      .,			///
 	label("Rounds")							///
 	min(1) max(500) default(1)					///
 	option(rounds)
-  TEXT     tx_first      _ilft   489     230     .,			///
+  TEXT     tx_first      _ilft   489     343     .,			///
 	label("Loss between baseline and round 1 (fraction):")
-  EDIT     ed_first      260     @       70      .,			///
+  EDIT     ed_first      369     @       70      .,			///
 	label("First-round loss")					///
 	numonly default(0)						///
 	option(firstloss)
-  TEXT     tx_dom        _ilft   511     230     .,			///
+  TEXT     tx_dom        _ilft   511     343     .,			///
 	label("Number of domains (equal reliability each):")
-  SPINNER  sp_dom        260     @       70      .,			///
+  SPINNER  sp_dom        369     @       70      .,			///
 	label("Domains")						///
 	min(1) max(500) default(1)					///
 	option(domains)
