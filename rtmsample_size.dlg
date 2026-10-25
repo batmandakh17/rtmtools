@@ -40,26 +40,12 @@ BEGIN
   GROUPBOX gb_tgt        _lft    135     _iwd    160,			///
 	label("Precision target")
   RADIO    rb_level      _ilft   155     _ibwd   ., first		///
-	label("The level of the indicator, with a margin of error (95% half-width):")	///
+	label("The level of the indicator, with a margin of error (the 95% half-width; set below)")	///
 	onclickon(script tgt_level)
-  RADIO    rb_rel        _iilft  175     220     ., first		///
-	label("relative to the estimate, as a fraction (UN 2008: 0.10):")	///
-	onclickon(script prec_rel)
-  EDIT     ed_rel        260     @       70      .,			///
-	label("Relative margin")					///
-	numonly default(0.10)						///
-	option(relmargin)
-  RADIO    rb_abs        _iilft  195     220     ., last		///
-	label("absolute, in the indicator's units:")			///
-	onclickon(script prec_abs)
-  EDIT     ed_abs        260     @       70      .,			///
-	label("Absolute margin")					///
-	numonly							///
-	option(margin)
-  RADIO    rb_change     _ilft   220     _ibwd   ., last		///
+  RADIO    rb_change     _ilft   175     _ibwd   ., last		///
 	label("A change between rounds or groups of (signed, same units as the indicator):")	///
 	onclickon(script tgt_change)
-  EDIT     ed_change     _iilft  240     70      .,			///
+  EDIT     ed_change     _iilft  195     70      .,			///
 	label("Change")							///
 	numonly							///
 	option(change)
@@ -72,9 +58,25 @@ BEGIN
   CHECKBOX ck_onesided   +70     @       130     .,			///
 	label("one-sided test")					///
 	option(onesided)
-  TEXT     tx_level      _ilft   268     160     .,			///
+  TEXT     tx_marg       _ilft   222     _ibwd   .,			///
+	label("Margin of error for the level:")
+  RADIO    rb_rel        _iilft  242     220     ., first		///
+	label("relative to the estimate, as a fraction (UN 2008: 0.10):")	///
+	onclickon(script prec_rel)
+  EDIT     ed_rel        260     @       70      .,			///
+	label("Relative margin")					///
+	numonly default(0.10)						///
+	option(relmargin)
+  RADIO    rb_abs        _iilft  262     220     ., last		///
+	label("absolute, in the indicator's units:")			///
+	onclickon(script prec_abs)
+  EDIT     ed_abs        260     @       70      .,			///
+	label("Absolute margin")					///
+	numonly							///
+	option(margin)
+  TEXT     tx_level      +90     @       120     .,			///
 	label("Confidence level (%):")
-  EDIT     ed_level      +165    @       60      .,			///
+  EDIT     ed_level      +125    @       50      .,			///
 	label("Confidence level")					///
 	numonly default(95)						///
 	option(level)
