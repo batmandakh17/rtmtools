@@ -15,7 +15,7 @@
 {title:Syntax}
 
 {p 8 16 2}
-{cmd:rtmtools_setup} [{cmd:,} {opt prof:ile} {opt inst:all} {opt check} {opt nomenu} {opt menu:only}]
+{cmd:rtmtools_setup} [{cmd:,} {opt prof:ile} {opt inst:all} {opt check} {opt nomenu} {opt menu:only} {opt menur:eset}]
 
 
 {marker description}{...}
@@ -45,9 +45,16 @@ only step of the package that uses the internet.
 touching the menu (for batch runs); {opt menuonly} adds the menu and prints nothing (the form
 profile.do uses).
 
+{phang}
+{opt menureset} rebuilds the menu after an update within a session. The menu is added once per
+session, because Stata cannot remove a single submenu and a second call would show it twice;
+{opt menureset} resets every entry added to the User menu in this session (other packages'
+entries come back at the next start through profile.do). Restarting Stata does the same.
+
 
 {marker deps}{...}
 {title:Dependencies}
+
 
 {pstd}
 Stata 16 or later. {cmd:svycal} (part of Stata 18) is used by {cmd:rtmweight calibrate}'s default

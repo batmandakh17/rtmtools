@@ -1,4 +1,4 @@
-*! rtmtools_setup.ado  version 0.5.0  25oct2026  rtmtools
+*! rtmtools_setup.ado  version 0.6.1  25oct2026  rtmtools
 *! One-time setup: adds the RTM tools entries to Stata's User menu for this session, can
 *! append the same lines to profile.do (so that the menu is there at every start), checks the
 *! Stata version and the user-written commands the package relies on, and installs the missing
@@ -8,9 +8,14 @@
 *!   rtmtools_setup, profile             also append the menu lines to profile.do (asks first in the GUI)
 *!   rtmtools_setup, install             install missing SSC dependencies (needs internet)
 *!   rtmtools_setup, check nomenu        check only
+*!   rtmtools_setup, menureset           rebuild the menu after an update (resets the User menu of this session)
 program define rtmtools_setup, rclass
     version 16
-    syntax [, PROFile INSTall CHECK NOMENU MENUonly]
+    syntax [, PROFile INSTall CHECK NOMENU MENUonly MENUReset]
+    if "`menureset'" != "" {
+        _rtmtools_menu, reset
+        exit
+    }
     if "`menuonly'" != "" {
         * the line profile.do runs at start-up: add the menu, nothing else, no output
         capture _rtmtools_menu
@@ -73,6 +78,17 @@ end
 * ---- the User menu -----------------------------------------------------------------------------
 program define _rtmtools_menu
     version 16
+    syntax [, RESET]
+    _rtm_util version
+    local v "`r(pkgversion)'"
+    * Stata cannot remove one submenu, so the menu is added once per session: a second call would
+    * duplicate it. After an update within a session, reset rebuilds it (window menu clear resets
+    * every entry added to the User menu in this session; profile.do restores them at the next start).
+    if "$RTMTOOLS_MENU" != "" & "`reset'" == "" {
+        if "$RTMTOOLS_MENU" != "`v'" di as text `"The RTM tools menu of version $RTMTOOLS_MENU is already in the User menu. To show version `v': {stata "rtmtools_setup, menureset":rtmtools_setup, menureset} (resets the User menu for this session), or restart Stata."'
+        exit
+    }
+    if "`reset'" != "" window menu clear
     window menu append submenu "stUser" "RTM tools"
     window menu append item "RTM tools" "Start here (guided steps)" "rtmtools_start"
     window menu append item "RTM tools" "Run from the input workbook..." "db rtminput"
@@ -104,6 +120,7 @@ program define _rtmtools_menu
     window menu append item "RTM tools" "Check dependencies" "rtmtools_setup, check nomenu"
     window menu append item "RTM tools" "Help and about rtmtools" "help rtmtools"
     window menu refresh
+    global RTMTOOLS_MENU "`v'"
     di as text `"Start here: {stata rtmtools_start:the guided steps} (User > RTM tools > Start here)"'
 end
 
