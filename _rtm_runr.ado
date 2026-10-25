@@ -27,7 +27,7 @@ program define _rtm_runr, rclass
     local scriptpath "`r(fn)'"
     capture erase "`status'"
     if "`quietly'" == "" di as txt "running R (`script') ..."
-    capture _rtm_log progress, msg("running R: `script'")
+    capture _rtm_export message, text("running R: `script'")
     if "`c(os)'" == "Windows" {
         shell "`rscript'" --vanilla "`scriptpath'" "`args'"
     }

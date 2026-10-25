@@ -10,3 +10,8 @@ OPEN_ITEMS.md
 # run logs and dashboard config written into working folders
 rtmtools_runs.js
 rtmtools_dashboard_config.js
+# local demo folder (data copies and outputs)
+demo/
+# export folders written by runs and tests
+rtm_exports/
+rtm_exports_adopt/

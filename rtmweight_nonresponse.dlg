@@ -1,12 +1,12 @@
 /*
-  rtmweight_nonresponse.dlg -- rtmtools 0.1.0 (24oct2026)
+  rtmweight_nonresponse.dlg -- rtmtools 0.5.0 (25oct2026)
   Dialog for: rtmweight nonresponse
 */
 
 VERSION 16.0
 
 INCLUDE _std_medium
-DEFINE _dlght 400
+DEFINE _dlght 460
 INCLUDE header
 
 HELP hlp1, view("help rtmweight##nonresponse")
@@ -14,16 +14,22 @@ RESET res1
 
 LIST meth_list
 BEGIN
-	"Weighting classes (survwgt): classes defined by the variables below"
-	"Response propensity, logit model on the covariates below"
-	"Response propensity, probit model on the covariates below"
+	"Response propensity, logit model on the covariates (default: HFPS Vol. 2 p. 10; L2T 2017)"
+	"Response propensity, probit model on the covariates"
+	"Weighting classes (survwgt): classes defined by the class variables"
+	"Entropy balancing with the base weights kept (svycal rake; L2 program practice)"
+	"Entropy balancing without base weights, factor multiplied in (L2PHL script, Jan 2026)"
+	"Cell post-stratification to population totals from a file (L2PHL script since Mar 2026)"
 END
 
 LIST meth_vals
 BEGIN
-	classes
 	logit
 	probit
+	classes
+	ebalance
+	ebalance_nobase
+	post
 END
 
 DIALOG main, label("rtmweight nonresponse - Nonresponse and attrition adjustment") tabtitle("Data")
@@ -47,13 +53,15 @@ BEGIN
 	label("Replace it if it exists")				///
 	option(replace)
   TEXT     tx_note       _lft    _xls    _iwd    .,			///
-	label("Nonrespondents get a weight of 0; respondents carry the weight of their class or propensity group.")
+	label("Nonrespondents get a weight of 0; respondents carry the weight of their class, group or cell.")
+  TEXT     tx_note2      _lft    _ms     _iwd    .,			///
+	label("Every run is exported (manifest, tables, Excel display, dashboard); see rtmtools_dashboard.")
 END
 
 DIALOG meth, tabtitle("Method")
 BEGIN
   TEXT     tx_meth       _lft    _top    _iwd    .,			///
-	label("Adjustment method (default: logit response propensity, as in the L2T 2017 report and HFPS Vol. 2):")
+	label("Adjustment method (every choice is labeled with its source in the help):")
   COMBOBOX cb_meth       @       _ss     _iwd    .,			///
 	dropdownlist							///
 	contents(meth_list)						///
@@ -61,35 +69,64 @@ BEGIN
 	default(logit)							///
 	option(method)							///
 	onselchange(program meth_changed)
-  TEXT     tx_cls        _lft    _ls     _iwd    .,			///
-	label("Class variables (for weighting classes), e.g. region urban:")
-  VARLIST  vl_cls        @       _ss     @       .,			///
-	label("Class variables")					///
-	option(classes)
   TEXT     tx_cov        _lft    _ls     _iwd    .,			///
-	label("Covariates of the response model (for propensity), e.g. urban i.educ head_age:")
+	label("Covariates (propensity and balancing), e.g. urban i.educ head_age hhsize:")
   VARLIST  vl_cov        @       _ss     @       .,			///
 	label("Covariates")						///
 	fv								///
 	option(covariates)
-  TEXT     tx_ng         _lft    _ls     _iwd    .,			///
-	label("Number of propensity groups (deciles = 10):")
-  SPINNER  sp_ng         @       _ss     _spwd   .,			///
+  TEXT     tx_ng         _lft    _ls     200     .,			///
+	label("Propensity groups (deciles = 10):")
+  SPINNER  sp_ng         +210    @       _spwd   .,			///
 	min(2) max(50) default(10)					///
 	option(ngroups)
-  TEXT     tx_by         _lft    _ls     _iwd    .,			///
-	label("Fit the model separately within (optional):")
+  TEXT     tx_mom        _lft    _ls     200     .,			///
+	label("Balancing moments (1 = means, 2 = + variances, 3 = + skewness):")
+  SPINNER  sp_mom        +210    @       _spwd   .,			///
+	min(1) max(3) default(1)					///
+	option(moments)
+  TEXT     tx_cls        _lft    _ls     _iwd    .,			///
+	label("Class variables (weighting classes), e.g. region urban:")
+  VARLIST  vl_cls        @       _ss     @       .,			///
+	label("Class variables")					///
+	option(classes)
+  TEXT     tx_cells      _lft    _ls     _iwd    .,			///
+	label("Cell variables (post-stratification), e.g. stratum female age_grp:")
+  VARLIST  vl_cells      @       _ss     @       .,			///
+	label("Cell variables")						///
+	option(cells)
+  TEXT     tx_cf         _lft    _ls     _iwd    .,			///
+	label("Cell totals: a Stata file with the cell variables and a total per cell:")
+  FILE     fi_cf         @       _ss     _iwd    .,			///
+	label("Browse...")						///
+	filter("Stata data (*.dta)|*.dta|All files (*.*)|*.*")		///
+	option(cellfile)
+  TEXT     tx_ct         _lft    _ls     200     .,			///
+	label("Name of the total variable in that file:")
+  EDIT     ed_ct         +210    @       _vnwd   .,			///
+	label("Total variable")						///
+	default(total)							///
+	option(celltotal)
+END
+
+DIALOG opts, tabtitle("Settings")
+BEGIN
+  TEXT     tx_by         _lft    _top    _iwd    .,			///
+	label("Fit the propensity model separately within (optional):")
   VARLIST  vl_by         @       _ss     @       .,			///
 	label("By")							///
 	option(by)
   CHECKBOX ck_wm         _lft    _ls     _iwd    .,			///
-	label("Weight the response model by the weight to adjust (default: unweighted, as in Dabalen et al. 2016, Box 2.2)")	///
+	label("Weight the response model by the weight to adjust (default: unweighted, Dabalen et al. 2016, Box 2.2)")	///
 	option(weightedmodel)
   TEXT     tx_mc         _lft    _ls     _iwd    .,			///
 	label("Smallest number of respondents a class may have (0 = no check):")
   SPINNER  sp_mc         @       _ss     _spwd   .,			///
 	min(0) max(1000) default(0)					///
 	option(mincell)
+  CHECKBOX ck_nocc       _lft    _ls     _iwd    .,			///
+	label("Skip the ebalance cross-check of the balancing (it runs when ebalance is installed)")	///
+	option(nocrosscheck)
   CHECKBOX ck_noisily    _lft    _ls     _iwd    .,			///
 	label("Show the model output")					///
 	option(noisily)
@@ -99,21 +136,59 @@ PROGRAM meth_changed
 BEGIN
 	if meth.cb_meth.iseq("classes") {
 		call meth.vl_cls.enable
-		call meth.sp_mc.enable
+		call opts.sp_mc.enable
 		call meth.vl_cov.disable
 		call meth.sp_ng.disable
-		call meth.vl_by.disable
-		call meth.ck_wm.disable
-		call meth.ck_noisily.disable
+		call meth.sp_mom.disable
+		call meth.vl_cells.disable
+		call meth.fi_cf.disable
+		call meth.ed_ct.disable
+		call opts.vl_by.disable
+		call opts.ck_wm.disable
+		call opts.ck_nocc.disable
+		call opts.ck_noisily.disable
 	}
-	else {
+	if meth.cb_meth.iseq("logit") | meth.cb_meth.iseq("probit") {
 		call meth.vl_cls.disable
-		call meth.sp_mc.disable
+		call opts.sp_mc.disable
 		call meth.vl_cov.enable
 		call meth.sp_ng.enable
-		call meth.vl_by.enable
-		call meth.ck_wm.enable
-		call meth.ck_noisily.enable
+		call meth.sp_mom.disable
+		call meth.vl_cells.disable
+		call meth.fi_cf.disable
+		call meth.ed_ct.disable
+		call opts.vl_by.enable
+		call opts.ck_wm.enable
+		call opts.ck_nocc.disable
+		call opts.ck_noisily.enable
+	}
+	if meth.cb_meth.iseq("ebalance") | meth.cb_meth.iseq("ebalance_nobase") {
+		call meth.vl_cls.disable
+		call opts.sp_mc.disable
+		call meth.vl_cov.enable
+		call meth.sp_ng.disable
+		call meth.sp_mom.enable
+		call meth.vl_cells.disable
+		call meth.fi_cf.disable
+		call meth.ed_ct.disable
+		call opts.vl_by.disable
+		call opts.ck_wm.disable
+		call opts.ck_nocc.enable
+		call opts.ck_noisily.enable
+	}
+	if meth.cb_meth.iseq("post") {
+		call meth.vl_cls.disable
+		call opts.sp_mc.disable
+		call meth.vl_cov.disable
+		call meth.sp_ng.disable
+		call meth.sp_mom.disable
+		call meth.vl_cells.enable
+		call meth.fi_cf.enable
+		call meth.ed_ct.enable
+		call opts.vl_by.disable
+		call opts.ck_wm.disable
+		call opts.ck_nocc.disable
+		call opts.ck_noisily.disable
 	}
 END
 
@@ -140,15 +215,29 @@ BEGIN
 		if meth.cb_meth.iseq("classes") {
 			require meth.vl_cls
 			optionarg meth.vl_cls
-			optionarg meth.sp_mc
+			optionarg opts.sp_mc
 		}
-		else {
+		if meth.cb_meth.iseq("logit") | meth.cb_meth.iseq("probit") {
 			require meth.vl_cov
 			optionarg meth.vl_cov
 			optionarg meth.sp_ng
-			optionarg meth.vl_by
-			option meth.ck_wm
-			option meth.ck_noisily
+			optionarg opts.vl_by
+			option opts.ck_wm
+			option opts.ck_noisily
+		}
+		if meth.cb_meth.iseq("ebalance") | meth.cb_meth.iseq("ebalance_nobase") {
+			require meth.vl_cov
+			optionarg meth.vl_cov
+			optionarg meth.sp_mom
+			option opts.ck_nocc
+			option opts.ck_noisily
+		}
+		if meth.cb_meth.iseq("post") {
+			require meth.vl_cells
+			optionarg meth.vl_cells
+			require meth.fi_cf
+			optionarg meth.fi_cf
+			optionarg meth.ed_ct
 		}
 	endoptions
 END

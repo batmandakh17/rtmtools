@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.0  24oct2026  rtmtools}{...}
+{* *! version 0.5.0  25oct2026  rtmtools}{...}
 {vieweralsosee "rtmtools" "help rtmtools"}{...}
 {vieweralsosee "rtmest" "help rtmest"}{...}
 {vieweralsosee "[SVY] svycal" "help svycal"}{...}
@@ -10,7 +10,9 @@
 {viewerjumpto "nonresponse" "rtmweight##nonresponse"}{...}
 {viewerjumpto "calibrate" "rtmweight##calibrate"}{...}
 {viewerjumpto "trim" "rtmweight##trim"}{...}
+{viewerjumpto "household" "rtmweight##household"}{...}
 {viewerjumpto "report" "rtmweight##report"}{...}
+{viewerjumpto "Export" "rtmweight##export"}{...}
 {viewerjumpto "Examples" "rtmweight##examples"}{...}
 {viewerjumpto "Stored results" "rtmweight##results"}{...}
 {viewerjumpto "Limits" "rtmweight##limits"}{...}
@@ -18,7 +20,7 @@
 {title:Title}
 
 {phang}
-{bf:rtmweight} {hline 2} Survey weights for a real-time monitoring phone panel: base weights, nonresponse and attrition adjustment, calibration, trimming, and a weighting report
+{bf:rtmweight} {hline 2} Survey weights for a real-time monitoring phone panel: base weights, nonresponse and attrition adjustment (five labeled methods), calibration, trimming, household weights from person weights, and a weighting report; every run exported for the Excel display and the dashboard
 
 
 {marker syntax}{...}
@@ -31,27 +33,32 @@
 
 {p 8 16 2}
 {cmd:rtmweight} {cmd:nonresponse} {it:respvar} {ifin}{cmd:,} {opt weight(varname)} {opt gen:erate(newvar)}
-[{opt meth:od(classes|logit|probit)} {opt class:es(varlist)} {opt cov:ariates(varlist)} {opt by(varlist)}
-{opt ng:roups(#)} {opt min:cell(#)} {opt weightedmodel} {opt replace} {opt noi:sily}]
+[{opt meth:od(logit|probit|classes|ebalance|ebalance_nobase|post)} {opt cov:ariates(varlist)} {opt class:es(varlist)}
+{opt cells(varlist)} {opt cellf:ile(filename)} {opt cellt:otal(varname)} {opt by(varlist)} {opt ng:roups(#)} {opt mom:ents(1|2|3)}
+{opt min:cell(#)} {opt weightedmodel} {opt nocross:check} {opt replace} {opt noi:sily}]
 
 {p 8 16 2}
 {cmd:rtmweight} {cmd:calibrate} {it:varlist} {ifin} {cmd:[pw=}{it:varname}{cmd:]}{cmd:,} {opt gen:erate(newvar)}
 {c -(} {opt tot:als(spec)} {c |} {opt totalsf:ile(filename)} {c )-}
-[{opt meth:od(rake|regress|post)} {opt eng:ine(stata|ipfraking|regenesees)} {opt ll(#)} {opt ul(#)}
-{opt iter:ate(#)} {opt tol:erance(#)} {opt force} {opt dist:ance(linear|raking|logit)} {opt bounds(# #)}
-{opt trim:cal(# #)} {opt ids(varname)} {opt str:ata(varname)} {opt agg:regate} {opt replace}]
+[{opt meth:od(rake|regress|post)} {opt eng:ine(stata|ipfraking)} {opt ll(#)} {opt ul(#)}
+{opt iter:ate(#)} {opt tol:erance(#)} {opt force} {opt replace}]
 
 {p 8 16 2}
 {cmd:rtmweight} {cmd:trim} {it:varname} {ifin}{cmd:,} {opt gen:erate(newvar)} {opt rule(winsor|cap)}
-[{opt pct(#)} {opt low:pct(#)} {opt cap(#)} {opt capm:ult(#)} {opt by(varlist)} {opt norescale} {opt replace}]
+[{opt pct(#)} {opt low:pct(#)} {opt cap(#)} {opt capm:ult(#)} {opt by(varlist)} {opt norescale} {opt id(varname)} {opt replace}]
+
+{p 8 16 2}
+{cmd:rtmweight} {cmd:household} {it:personweight} {ifin}{cmd:,} {opt hh:id(varname)} {opt gen:erate(popw hhw)}
+[{opt psu:average(varname)} {opt str:ata(varname)} {opt tot:als(spec)} {opt totalsf:ile(filename)} {opt replace}]
 
 {p 8 16 2}
 {cmd:rtmweight} {cmd:report} {it:varlist} {ifin}
-[{cmd:,} {opt tot:als(spec)} {opt by(varname)} {opt ex:cel(filename)} {opt docx(filename)} {opt gr:aph} {opt note:s}]
+[{cmd:,} {opt tot:als(spec)} {opt by(varname)} {opt ex:cel(filename)} {opt docx(filename)} {opt gr:aph} {opt note:s} {opt id(varname)} {opt units}]
 
 {pstd}
 Dialogs: {dialog rtmweight_base}, {dialog rtmweight_nonresponse}, {dialog rtmweight_calibrate},
-{dialog rtmweight_trim}, {dialog rtmweight_report}; or {bf:User > RTM tools > Weights} after {helpb rtmtools_setup}.
+{dialog rtmweight_trim}, {dialog rtmweight_household}, {dialog rtmweight_report}; or {bf:User > RTM tools > Weights} after {helpb rtmtools_setup}.
+No step uses R.
 
 
 {marker description}{...}
@@ -142,11 +149,51 @@ et al. 2020, p. 12). Ambel et al. 2021 (p. 22) found non-contact, not refusal, t
 bias in four African phone surveys; the output shows response rates by group so that both
 can be seen.
 
+{phang}
+{opt method(ebalance)} with {opt covariates(varlist)}: entropy balancing with the base weights
+kept (Hainmueller 2012; Hainmueller and Xu 2013). The respondents' weights are raked so that
+their weighted means of the covariates (and, with {opt moments(2)} or {opt moments(3)}, the
+weighted means of x^2 and x^3 of the continuous covariates, that is their variances and
+skewness) equal the weighted means of the whole eligible sample, the baseline's. Factor
+variables ({cmd:i.var}) become indicators. The weights are computed by official {helpb svycal}
+{cmd:rake} (the generalized raking of Deville, S{c a:}rndal and Sautory 1993), which gives the same
+weights as {helpb ebalance}'s two-group form with {cmd:basewt()} and {cmd:wttreat} (verified on the
+package's synthetic data: largest relative difference 4e-8); when ebalance is installed, the
+command runs it as a cross-check and reports the difference ({cmd:r(ebalance_maxreldiff)};
+{opt nocrosscheck} skips it). This is the method the L2 programs document for their rounds
+(L2T 2023-, L2KGZ, L2Arm, L2Geo); it is program practice, not a guideline default. The output
+lists every constraint with its target and achieved value. If the respondents cannot match
+every moment the command stops: drop a covariate, use moments(1), or collapse categories.
+
+{phang}
+{opt method(ebalance_nobase)} with {opt covariates(varlist)}: the form of the L2PHL script of
+January 2026 (program practice). {helpb ebalance} (SSC, required) balances the respondents to the
+{it:unweighted} means of the whole sample with base weight 1, and the resulting factor is
+multiplied into {opt weight()} afterwards. The design-weighted means after the multiplication are
+not targeted, so this is not the same as method(ebalance); on the synthetic data the two sets
+of weights differ by about 6 percent (CV of their ratio) although both hit the target means.
+The output lists the unweighted targets and achieved means.
+
+{phang}
+{opt method(post)} with {opt cells(varlist)}, {opt cellfile(filename)} and {opt celltotal(varname)}
+(default {cmd:total}): cell post-stratification to population totals, each round, the form of the
+L2PHL scripts since March 2026 (program practice; the method is post-stratification, UN 2008,
+section 6.6, pp. 134-135; Himelein et al. 2020, pp. 10-11). {it:cellfile} is a Stata dataset with
+one row per cell: the cell variables and the total. The factor of a cell is its total divided by
+the sum of the respondents' base weights in the cell, so the adjusted weights of each cell add
+to the cell's total. A respondent in a cell without a total stops the command; a cell in the
+file without a respondent is reported ({cmd:r(population_uncovered)}, {cmd:r(n_cells_empty)}): its
+population is not represented. With the sample's own cell totals instead of population totals,
+method(classes) is the same operation.
+
 {pstd}
 The output reports the unweighted and weighted response rates, the sum of weights before and
 after (for classes they are equal; for propensity groups nearly so), the adjustment factors,
-and a table by class or propensity group ({cmd:r(groups)}). A factor below 1 marks a group whose
-respondents are over-represented.
+and a table by class, propensity group or cell ({cmd:r(groups)}). A factor below 1 marks a group
+whose respondents are over-represented. The guidelines' sequence puts this sample-based
+adjustment first and calibration second (Himelein et al. 2020, p. 10); the L2 programs that
+balance each round to the baseline do the adjustment and the calibration in one step, and
+rescale to strata population afterwards ({cmd:rtmweight calibrate, method(post)} on the strata).
 
 
 {marker calibrate}{...}
@@ -200,22 +247,16 @@ applied during the iterations (approximate bounds; the totals may then not be me
 the output says so). The control matrices are built from the pairs.
 
 {phang}
-{opt engine(regenesees)} runs {cmd:e.calibrate} of the R package ReGenesees (Zardetto 2015) in the
-background through Rscript (see {helpb rtmtools_setup} for the R check). It is the engine for
-{opt distance(logit)} with {opt bounds(# #)} (exact bounded calibration; raking and linear also
-accept bounds), {opt trimcal(# #)} (weights kept within a range while the calibration totals are
-preserved), and {opt aggregate} (weights constant within {opt ids()}, for one weight per household
-after person-level calibration). {opt ids(varname)} is required (unique in the sample unless
-aggregate is given); {opt strata(varname)} is passed to the design. The data travel as temporary
-.dta files on this machine; nothing is sent elsewhere.
-
-{phang}
 {opt iterate(#)}, {opt tolerance(#)} and {opt force} are passed to svycal regress or ipfraking.
+The bounded logit distance (Deville, S{c a:}rndal and Sautory 1993) is available in Stata through
+{helpb sreweight} (Pacifico 2014, SSC), run by hand on the same totals; trimming that preserves
+the calibration constraints is not offered: trim before calibrating, as the guidelines order
+the steps. No step of this command uses R.
 
 {pstd}
 No foundational document gives bounds on calibration weights, so bounds are off unless set.
 If the totals cannot be met within the bounds, the engines return the best approximation
-(svycal: with {opt force}; ipfraking and ReGenesees: with a warning), and the command's table of
+(svycal: with {opt force}; ipfraking: with a warning), and the command's table of
 target against achieved totals shows the gap. The output also gives the range of the g-weights
 (calibrated weight / input weight) and Kish's 1 + CV^2 before and after.
 
@@ -241,7 +282,28 @@ percentile (Ambel et al. 2021, p. 11, trimmed at the 2nd and 98th percentiles).
 that bound (UN 2008, pp. 136-138: a stratum-specific upper bound).
 
 {pstd}
-The output counts the weights changed and gives Kish's 1 + CV^2 before and after.
+The output counts the weights changed and gives Kish's 1 + CV^2 before and after. With
+{opt id(varname)}, the export's {cmd:flags} table names every unit whose weight was changed.
+
+
+{marker household}{...}
+{title:rtmweight household: household weights from person weights}
+
+{pstd}
+The L2PHL scripts weight persons (cell post-stratification by stratum, sex and age group) and
+derive the household weights from them. This step reproduces that derivation as a labeled
+choice; no foundational document prescribes it, and the help says what it changes. The data in
+memory are the person-level file (one row per member) with the household identifier
+{opt hhid(varname)} and the person weight {it:personweight}. {opt generate(popw hhw)} names two
+new variables: the {it:population weight} of the household, the sum of its members' person
+weights (the persons the household stands for), and the {it:household weight}, their mean.
+{opt psuaverage(varname)} replaces the household weight by its mean over the households of the
+PSU (one value per PSU, as in L2PHL). {opt strata(varname)} with {opt totals(spec)}
+({it:level}{cmd:.}{it:strata}{cmd:=}{it:total} pairs) or {opt totalsfile(filename)} (rows with
+{cmd:variable} equal to the strata name) rescales the household weights so that they add to the
+census household totals of each stratum. After the PSU average or the rescaling, the population
+weight no longer equals the household weight times household size; the output shows the range
+of that ratio and both weights are kept.
 
 
 {marker report}{...}
@@ -256,7 +318,25 @@ targets; with {opt by(varname)}, the last weight by group; with {opt graph}, the
 by stage; with {opt notes}, the rtmweight steps recorded in the dataset. {opt excel(filename)}
 writes the tables with {helpb putexcel}; {opt docx(filename)} writes a Word method note with
 {helpb putdocx_intro:putdocx} that lists every recorded step, its command, its software stamp and its source,
-ready for the survey report (UN 2008, ch. 5; CWM 2021, section 8.2).
+ready for the survey report (UN 2008, ch. 5; CWM 2021, section 8.2). With {opt units} (and
+{opt id(varname)} for the identifier), the export also gets a {cmd:weight_units} table with every
+weight stage per unit (identifiers only; up to 200,000 units).
+
+
+{marker export}{...}
+{title:The export: Excel display and dashboard}
+
+{pstd}
+Every subcommand writes its run into a folder under the export folder ({cmd:rtm_exports} in the
+working folder, or the folder set with {helpb rtmtools_dashboard}{cmd:, dir()}): {cmd:manifest.json}
+and {cmd:manifest.csv} (what ran, when, with which settings and their sources, the key results of
+{cmd:r()}), one CSV per table ({cmd:weight_stages}: N, sum, percentiles, mean, CV and Kish's
+1 + CV^2 of every weight stage; {cmd:response_classes}; {cmd:calibration_fit}; {cmd:weight_groups};
+{cmd:flags}; {cmd:weight_units}), the Excel workbook {cmd:rtm_display.xlsx} (the package's display
+template with the same tables filled in: its sheets show them with lookups and charts and
+compute nothing), and one line in {cmd:rtm_exports.js}, the index the dashboard page reads.
+Identifiers only are exported, never names, addresses or phone numbers, and nothing leaves the
+computer. {cmd:rtmtools_dashboard, off} switches the export off for the session.
 
 
 {marker examples}{...}
@@ -287,9 +367,18 @@ full baseline, before dropping the households without a phone){p_end}
 {phang2}{cmd:. rtmweight trim w1 if responded_r1, generate(w1t) rule(winsor) pct(98)}{p_end}
 {phang2}{cmd:. rtmweight calibrate i.region i.urban [pw=w1t] if responded_r1, generate(w2) totalsfile(rtm_totals_long.dta)}{p_end}
 
-{pstd}The same totals typed, with bounded linear calibration, and the ReGenesees logit distance{p_end}
+{pstd}The same totals typed, with bounded linear calibration{p_end}
 {phang2}{cmd:. rtmweight calibrate i.region i.urban [pw=w1t] if responded_r1, generate(w2r) method(regress) ll(0.7) ul(1.5) totals(1.region=14781 2.region=15345 3.region=14898 4.region=14807 0.urban=31458 1.urban=28373)}{p_end}
-{phang2}{cmd:. rtmweight calibrate i.region i.urban [pw=w1t] if responded_r1, generate(w2l) engine(regenesees) ids(hhid) strata(stratum) distance(logit) bounds(0.7 1.5) totalsfile(rtm_totals_long.dta)}{p_end}
+
+{pstd}Entropy balancing to the baseline's weighted means (the L2 programs' round weights), with the ebalance cross-check{p_end}
+{phang2}{cmd:. rtmweight nonresponse responded_r1, weight(w0) method(ebalance) covariates(urban i.educ head_age assets hhsize) generate(w1e)}{p_end}
+
+{pstd}The L2PHL forms: balancing without base weights, and cell post-stratification of persons to census cells, then household weights{p_end}
+{phang2}{cmd:. rtmweight nonresponse responded_r1, weight(w0) method(ebalance_nobase) covariates(hhsize i.region) generate(w1n)}{p_end}
+{phang2}{cmd:. use rtm_persons, clear}{p_end}
+{phang2}{cmd:. generate byte responded = 1}{p_end}
+{phang2}{cmd:. rtmweight nonresponse responded, weight(indw) method(post) cells(region urban female age_grp) cellfile(rtm_totals_persons.dta) celltotal(N_persons) generate(indw_post)}{p_end}
+{phang2}{cmd:. rtmweight household indw_post, hhid(hhid) generate(popw hhw) psuaverage(psu)}{p_end}
 
 {pstd}Round 2: adjust the round-1 weight for attrition among round-1 respondents{p_end}
 {phang2}{cmd:. rtmweight nonresponse responded_r2 if responded_r1, weight(w2) method(logit) covariates(urban i.educ head_age hhsize) generate(w3)}{p_end}
@@ -312,7 +401,9 @@ characteristics ({cmd:char} {it:newvar}{cmd:[rtm_cmd]}, {cmd:[rtm_stamp]}, {cmd:
 {pstd}{cmd:base}: {cmd:r(factor_min)}, {cmd:r(factor_max)}, {cmd:r(sum_baseline)} (with subsample()), {cmd:r(mode)}.{p_end}
 {pstd}{cmd:nonresponse}: {cmd:r(N_sample)}, {cmd:r(N_resp)}, {cmd:r(rr_unweighted)}, {cmd:r(rr_weighted)}, {cmd:r(sum_base)},
 {cmd:r(sum_adj)}, {cmd:r(factor_min)}, {cmd:r(factor_p50)}, {cmd:r(factor_max)}, {cmd:r(converged)} and {cmd:r(pseudo_r2)}
-(propensity), {cmd:r(method)}, matrix {cmd:r(groups)} (sample size, respondents, response rate and factor by group).{p_end}
+(propensity), {cmd:r(max_rel_diff)}, {cmd:r(n_constraints)} and {cmd:r(ebalance_maxreldiff)} (ebalance),
+{cmd:r(population_uncovered)} and {cmd:r(n_cells_empty)} (post), {cmd:r(method)}, matrix {cmd:r(groups)} (sample size, respondents, response rate and factor by group).{p_end}
+{pstd}{cmd:household}: {cmd:r(N_hh)}, {cmd:r(sum_pop)}, {cmd:r(sum_hh)}, {cmd:r(ratio_min)}, {cmd:r(ratio_max)}, {cmd:r(kish_hh)}, {cmd:r(cv_hh)}.{p_end}
 {pstd}{cmd:calibrate}: {cmd:r(N_pop)}, {cmd:r(g_min)}, {cmd:r(g_p50)}, {cmd:r(g_max)}, {cmd:r(max_rel_diff)}, {cmd:r(kish_before)},
 {cmd:r(kish_after)}, {cmd:r(sum_before)}, {cmd:r(sum_after)}, {cmd:r(converged)} (ipfraking), {cmd:r(method)}, {cmd:r(engine)},
 {cmd:r(calvars)}; and {cmd:char _dta[rtm_cal_svyset]} for rtmest.{p_end}
@@ -330,9 +421,11 @@ report. The propensity method cannot remove bias from nonresponse related to the
 beyond what the covariates capture (Gourlay et al. 2026, p. 24, found it reduced bias at the
 household level more than at the individual level). Bounds and trimming trade bias for variance
 without a cited default. {cmd:svycal} is part of Stata 18; on Stata 16 and 17, use
-{opt engine(ipfraking)} or {opt engine(regenesees)}, and rtmest then treats the calibrated weights
-as fixed. Interactions among calibration variables need a combined variable. The ReGenesees
-engine requires R with the packages haven and ReGenesees (see {helpb rtmtools_setup}).
+{opt engine(ipfraking)} for calibration and method(classes), (probit) or (ebalance_nobase) for the
+adjustment, and rtmest then treats the calibrated weights as fixed. Interactions among
+calibration variables need a combined variable. The entropy-balancing methods and the cell
+post-stratification are the L2 programs' practice, offered as labeled choices; the guidelines'
+default remains the propensity adjustment followed by calibration.
 
 
 {marker references}{...}
@@ -344,14 +437,16 @@ engine requires R with the packages haven and ReGenesees (see {helpb rtmtools_se
 {phang}Deville, J.-C., and C.-E. S{c a:}rndal. 1992. Calibration estimators in survey sampling. Journal of the American Statistical Association 87: 376-382.{p_end}
 {phang}Deville, J.-C., C.-E. S{c a:}rndal, and O. Sautory. 1993. Generalized raking procedures in survey sampling. Journal of the American Statistical Association 88: 1013-1020.{p_end}
 {phang}Gourlay, S., A. Ambel, P. Wollburg, I. Yacoubou Djima, A. Palacios-Lopez, T. Kilic, and K. McGee. 2026. Six Years of High-Frequency Phone Surveys: Lessons from Sub-Saharan Africa. Policy Research Working Paper 11435. World Bank.{p_end}
+{phang}Hainmueller, J. 2012. Entropy balancing for causal effects: A multivariate reweighting method to produce balanced samples in observational studies. Political Analysis 20(1): 25-46.{p_end}
+{phang}Hainmueller, J., and Y. Xu. 2013. ebalance: A Stata package for entropy balancing. Journal of Statistical Software 54(7).{p_end}
 {phang}Himelein, K. 2014. Weight calculations for panel surveys with subsampling and split-off tracking. Statistics and Public Policy 1(1): 40-45.{p_end}
 {phang}Himelein, K., S. Eckman, J. Kastelic, K. McGee, M. Wild, and N. Yoshida. 2020. High Frequency Mobile Phone Surveys of Households to Assess the Impacts of COVID-19, Vol. 2: Guidelines on Sampling Design. World Bank.{p_end}
 {phang}Kish, L. 1992. Weighting for unequal Pi. Journal of Official Statistics 8: 183-200.{p_end}
 {phang}Kolenikov, S. 2014. Calibrating survey data using iterative proportional fitting (raking). Stata Journal 14(1): 22-59. 2019. Updates to the ipfraking ecosystem. Stata Journal 19(1): 143-184.{p_end}
 {phang}Oseni, G., A. Palacios-Lopez, H. K. Mugera, and J. Durazo. 2021. Capturing What Matters: Essential Guidelines for Designing Household Surveys. 2nd ed. LSMS Guidebook. World Bank. (CWM 2021){p_end}
 {phang}United Nations. 2008. Designing Household Survey Samples: Practical Guidelines. Studies in Methods, Series F No. 98. New York. (UN 2008){p_end}
+{phang}Pacifico, D. 2014. sreweight: A Stata command to reweight survey data to external totals. Stata Journal 14(1): 4-21.{p_end}
 {phang}Winter, N. 2002 (revised 2018). SURVWGT: Stata module to create and manipulate survey weights. SSC S427503.{p_end}
-{phang}Zardetto, D. 2015. ReGenesees: An advanced R system for calibration, estimation and sampling error assessment in complex sample surveys. Journal of Official Statistics 31(2): 177-203.{p_end}
 
 
 {title:Author}

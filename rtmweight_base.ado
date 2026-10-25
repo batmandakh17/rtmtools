@@ -1,4 +1,4 @@
-*! rtmweight_base.ado  version 0.1.0  24oct2026  rtmtools
+*! rtmweight_base.ado  version 0.5.0  25oct2026  rtmtools
 *! Design (base) weights: from stage selection probabilities, or from a baseline weight
 *! and a phone-subsampling indicator, with an optional multiplicity adjustment.
 *!
@@ -149,4 +149,16 @@ program define rtmweight_base, rclass
     local cmd `"rtmweight base `0'"'
     return local cmdline `"`cmd'"'
     _rtm_util record, step(base) cmd(`"`cmd'"') var(`generate')
+
+    * ---- export tables and settings (schema rtm-export-1.0) ----
+    if "`baseweight'" != "" capture _rtm_export wstage, frame(_rtmx_ws) stage("baseline weight, all sample") var(`baseweight') cond(`touse')
+    capture _rtm_export wstage, frame(_rtmx_ws) stage("design weight") var(`generate') cond(`touse')
+    capture _rtm_export table, name(weight_stages) frame(_rtmx_ws)
+    capture _rtm_export setting, key(mode) value("`mode'") source("UN 2008 section 6.3; HFPS Vol. 2 pp. 10-11, 21")
+    capture _rtm_export setting, key(generate) value("`generate'")
+    if "`probability'" != "" capture _rtm_export setting, key(probability) value("`probability'")
+    if "`baseweight'" != "" capture _rtm_export setting, key(baseweight) value("`baseweight'")
+    if "`subsample'" != "" capture _rtm_export setting, key(subsample) value("`subsample'")
+    if "`by'" != "" & "`one'" == "" capture _rtm_export setting, key(by) value("`by'")
+    if "`multiplicity'" != "" capture _rtm_export setting, key(multiplicity) value("`multiplicity'")
 end

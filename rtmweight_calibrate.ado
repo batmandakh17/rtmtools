@@ -1,4 +1,4 @@
-*! rtmweight_calibrate.ado  version 0.1.0  24oct2026  rtmtools
+*! rtmweight_calibrate.ado  version 0.5.0  25oct2026  rtmtools
 *! Calibration of survey weights to population totals.
 *!
 *! engine(stata), the default: official svycal (Stata 18; Deville and Sarndal 1992; Deville,
@@ -10,9 +10,8 @@
 *! engine(ipfraking): raking through ipfraking (Kolenikov 2014, 2019), with its trimming of the
 *!   adjustment factors as approximate bounds; totals() must then be ipfraking's control-total
 *!   matrices (see the help file).
-*! engine(regenesees): e.calibrate of ReGenesees (Zardetto 2015) through R in the background,
-*!   for the logit distance, exact bounds on raking, trimming that preserves the calibration
-*!   constraints (trimcal) and weights constant within a cluster (aggregate).
+*! No R: the bounded logit distance is available in Stata through sreweight (Pacifico 2014, SSC),
+*!   run by hand; trimming that preserves the calibration constraints is not offered.
 *! Method sources: HFPS Vol. 2 (Himelein et al. 2020) pp. 10-11 and Annex A2; Ambel et al. 2021
 *!   pp. 7, 10-11; UN 2008 section 6.6. No foundational document gives bounds, so bounds are off
 *!   unless the user sets them.
@@ -20,8 +19,7 @@ program define rtmweight_calibrate, rclass
     version 16
     syntax varlist(numeric fv) [if] [in] [pw], GENerate(name) ///
         [TOTals(string) TOTALSFile(string) METHod(string) LL(real -1) UL(real -1) ITERate(integer 1000) ///
-         TOLerance(real 1e-7) FORCE ENGine(string) DISTance(string) BOUNDS(numlist min=2 max=2) ///
-         TRIMcal(numlist min=2 max=2) IDs(varname) STRata(varname) AGGregate REPLACE]
+         TOLerance(real 1e-7) FORCE ENGine(string) REPLACE]
 
     * ---- options ----
     if "`exp'" == "" {
@@ -41,8 +39,8 @@ program define rtmweight_calibrate, rclass
         exit 198
     }
     local engine = cond("`engine'" == "", "stata", lower("`engine'"))
-    if !inlist("`engine'", "stata", "ipfraking", "regenesees") {
-        di as err "engine() must be stata, ipfraking or regenesees"
+    if !inlist("`engine'", "stata", "ipfraking") {
+        di as err "engine() must be stata (svycal) or ipfraking"
         exit 198
     }
     if "`totals'" == "" & "`totalsfile'" == "" {
@@ -51,22 +49,6 @@ program define rtmweight_calibrate, rclass
     }
     if "`totals'" != "" & "`totalsfile'" != "" {
         di as err "specify totals() or totalsfile(), not both"
-        exit 198
-    }
-    if (`ll' > 0 | `ul' > 0) & "`bounds'" != "" {
-        di as err "use ll()/ul() with engine(stata) or engine(ipfraking), and bounds() with engine(regenesees), not both"
-        exit 198
-    }
-    if "`distance'" != "" & "`engine'" != "regenesees" {
-        di as err "distance() applies to engine(regenesees); engine(stata) raking is the multiplicative distance and regress the linear one"
-        exit 198
-    }
-    if "`trimcal'" != "" & "`engine'" != "regenesees" {
-        di as err "trimcal() is a ReGenesees feature; use engine(regenesees), or rtmweight trim after calibrating"
-        exit 198
-    }
-    if "`aggregate'" != "" & "`engine'" != "regenesees" {
-        di as err "aggregate (weights constant within ids()) is a ReGenesees feature; use engine(regenesees)"
         exit 198
     }
     _rtm_util newvar `generate', `replace'
@@ -225,15 +207,16 @@ program define rtmweight_calibrate, rclass
     local kish0 = r(kish)
     local sum0 = r(sum)
 
+    local conv 1
     * ================= engine: stata (svycal) =================
     if "`engine'" == "stata" {
         capture which svycal
         if _rc {
-            di as err "svycal is not available in this Stata (it is part of Stata 18); use engine(ipfraking) for raking, or engine(regenesees)"
+            di as err "svycal is not available in this Stata (it is part of Stata 18); use engine(ipfraking) for raking"
             exit 199
         }
         if "`method'" == "rake" & (`ll' > 0 | `ul' > 0) {
-            di as err "svycal rake has no bounds; use engine(ipfraking) (approximate bounds through trimming) or engine(regenesees) (exact bounded raking)"
+            di as err "svycal rake has no bounds; use method(regress) with ll()/ul() (truncated linear), engine(ipfraking) (approximate bounds through trimming), or sreweight (SSC) for the bounded logit distance"
             exit 198
         }
         local fvlist ""
@@ -320,92 +303,13 @@ program define rtmweight_calibrate, rclass
         if `ll' > 0 | `ul' > 0 local how "`how' (trimming of the adjustment factors as approximate bounds)"
     }
 
-    * ================= engine: regenesees (R) =================
-    else {
-        if "`ids'" == "" {
-            di as err "engine(regenesees) needs ids(varname), the unit identifier (unique in the sample, or the cluster id with aggregate)"
-            exit 198
-        }
-        if `ismatrix' {
-            di as err "engine(regenesees) needs totals as level.variable=number pairs or a totalsfile(), not a matrix"
-            exit 198
-        }
-        local calfun = cond("`distance'" == "", cond("`method'" == "regress", "linear", "raking"), lower("`distance'"))
-        if !inlist("`calfun'", "linear", "raking", "logit") {
-            di as err "distance() must be linear, raking or logit"
-            exit 198
-        }
-        if "`calfun'" == "logit" & "`bounds'" == "" {
-            di as err "the logit distance needs bounds(), for example bounds(0.3 3)"
-            exit 198
-        }
-        if "`aggregate'" == "" {
-            tempvar dup
-            quietly bysort `ids': gen byte `dup' = (_N > 1) if `touse'
-            quietly count if `touse' & `dup'
-            local ndup = r(N)
-            if `ndup' > 0 {
-                di as err "ids({bf:`ids'}) is not unique in the sample; use the household or respondent id, or add aggregate to calibrate at the cluster level"
-                exit 459
-            }
-        }
-        tempfile data tot out diag argsf statusf
-        preserve
-        quietly keep if `touse'
-        quietly keep `ids' `wvar' `calvars' `strata'
-        quietly save "`data'"
-        clear
-        quietly set obs `nrow'
-        quietly gen str32 variable = ""
-        quietly gen long level = .
-        quietly gen double total = .
-        forvalues j = 1/`nrow' {
-            quietly replace variable = "`TOTvar`j''" in `j'
-            quietly replace level = `TOTlev`j'' in `j'
-            quietly replace total = `TOTval`j'' in `j'
-        }
-        quietly save "`tot'"
-        restore
-        tempname fh
-        quietly file open `fh' using "`argsf'", write text replace
-        file write `fh' "data=`data'" _n "totals=`tot'" _n "out=`out'" _n "diag=`diag'" _n "status=`statusf'" _n
-        file write `fh' "idvar=`ids'" _n "wvar=`wvar'" _n "stratavar=`strata'" _n "calvars=`calvars'" _n
-        file write `fh' "method=`method'" _n "calfun=`calfun'" _n "bounds=`bounds'" _n "trimcal=`trimcal'" _n "aggvar=`aggregate'" _n
-        file close `fh'
-        _rtm_runr, script(rtm_calibrate.R) args("`argsf'") status("`statusf'")
-        local rmsg "`r(message)'"
-        * bring the weights back
-        tempvar mrg
-        quietly merge 1:1 `ids' using "`out'", keep(master match) generate(`mrg')
-        quietly count if `touse' & `mrg' == 1
-        if r(N) > 0 {
-            di as err "R returned no weight for " r(N) " sample observations"
-            exit 459
-        }
-        quietly rename w_cal `generate'
-        quietly replace `generate' = . if !`touse'
-        preserve
-        quietly use "`diag'", clear
-        quietly count
-        local ndiag = r(N)
-        di as text _n "ReGenesees check: target and achieved totals"
-        list column target achieved rel_diff, noobs clean
-        quietly summarize rel_diff
-        local maxrel = max(abs(r(min)), abs(r(max)))
-        restore
-        local how "ReGenesees e.calibrate, calfun `calfun' on `calvars'"
-        if "`bounds'" != "" local how "`how', bounds `bounds'"
-        if "`trimcal'" != "" local how "`how', trimcal `trimcal'"
-        if "`aggregate'" != "" local how "`how', weights constant within `ids'"
-        local how "`how' (`rmsg')"
-    }
-
     local lbl `"Calibrated weight: `how'"'
     local lbl = usubstr(`"`lbl'"', 1, 80)
     label variable `generate' `"`lbl'"'
     char _dta[rtm_cal_vars] "`calvars'"
     char _dta[rtm_cal_pairs] "`pairs'"
 
+    local conv_x = cond("`engine'" == "ipfraking", `conv', 1)
     * ---- diagnostics in Stata: achieved against target totals, g-weights ----
     _rtm_util wsum `generate' if `touse'
     local kish1 = r(kish)
@@ -426,12 +330,17 @@ program define rtmweight_calibrate, rclass
         di as text _n "Target against achieved totals:"
         di as text %-12s "variable" %6s "level" %14s "target" %14s "achieved" %10s "rel.diff"
         local maxrel 0
+        capture frame drop _rtmx_cf
+        frame create _rtmx_cf str64 constraint double(target before after diff rel_diff converged iterations)
         forvalues j = 1/`nrow' {
+            quietly summarize `wvar' if `touse' & `TOTvar`j'' == `TOTlev`j''
+            local bef = r(sum)
             quietly summarize `generate' if `touse' & `TOTvar`j'' == `TOTlev`j''
             local ach = r(sum)
             local rd = (`ach' - `TOTval`j'') / `TOTval`j''
             if abs(`rd') > `maxrel' local maxrel = abs(`rd')
             di as text %-12s "`TOTvar`j''" as result %6.0f `TOTlev`j'' %14.1fc `TOTval`j'' %14.1fc `ach' %10.5f `rd'
+            frame post _rtmx_cf ("`TOTvar`j''==`TOTlev`j''") (`TOTval`j'') (`bef') (`ach') (`ach' - `TOTval`j'') (`rd') (`conv_x') (.)
         }
         di as text "Largest relative difference: " as result %8.6f `maxrel'
         return scalar max_rel_diff = `maxrel'
@@ -458,4 +367,17 @@ program define rtmweight_calibrate, rclass
     local cmd `"rtmweight calibrate `0'"'
     return local cmdline `"`cmd'"'
     _rtm_util record, step(calibrate) cmd(`"`cmd'"') var(`generate')
+
+    * ---- export tables and settings (schema rtm-export-1.0) ----
+    capture _rtm_export wstage, frame(_rtmx_ws) stage("before calibration") var(`wvar') cond(`touse')
+    capture _rtm_export wstage, frame(_rtmx_ws) stage("after calibration") var(`generate') cond(`touse')
+    capture _rtm_export table, name(weight_stages) frame(_rtmx_ws)
+    capture _rtm_export table, name(calibration_fit) frame(_rtmx_cf)
+    capture _rtm_export setting, key(method) value("`method'") source("HFPS Vol. 2 pp. 10-11 and Annex A2; Deville and Sarndal 1992")
+    capture _rtm_export setting, key(engine) value("`engine'")
+    capture _rtm_export setting, key(calibration_variables) value("`calvars' `contvars'")
+    capture _rtm_export setting, key(weight) value("`wvar'")
+    capture _rtm_export setting, key(generate) value("`generate'")
+    if `ll' > 0 | `ul' > 0 capture _rtm_export setting, key(bounds) value("ll `ll' ul `ul'") source("no cited default; Deville, Sarndal and Sautory 1993")
+    if "`totalsfile'" != "" capture _rtm_export setting, key(totalsfile) value("`totalsfile'")
 end

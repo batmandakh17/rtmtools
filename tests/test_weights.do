@@ -81,6 +81,89 @@ assert rowsof(G) == 5
 rtmweight nonresponse responded_r1, weight(w_base) method(probit) covariates(i.educ head_age assets) by(urban) generate(w1pb)
 assert r(factor_min) > 0
 
+* ---------- 3b. entropy balancing: svycal rake equals ebalance's two-group form; moments matched ----------
+use "../data/rtm_round1.dta", clear
+rtmweight nonresponse responded_r1, weight(w_base) method(ebalance) covariates(urban i.educ head_age assets hhsize) generate(w1e)
+assert r(max_rel_diff) < 1e-6
+assert r(n_constraints) == 6
+capture which ebalance
+if _rc global rtm_test_note "$rtm_test_note (ebalance not installed: cross-check skipped)"
+else assert r(ebalance_maxreldiff) < 1e-5
+quietly summarize head_age [aw=w_base]
+local m_all = r(mean)
+quietly summarize head_age [aw=w1e] if responded_r1
+assert reldif(r(mean), `m_all') < 1e-7
+quietly summarize w_base
+local s_all = r(sum)
+quietly summarize w1e if responded_r1
+assert reldif(r(sum), `s_all') < 1e-7
+assert w1e == 0 if responded_r1 == 0
+* second moments: the weighted mean of x^2 is matched too
+rtmweight nonresponse responded_r1, weight(w_base) method(ebalance) covariates(head_age hhsize) moments(2) generate(w1e2) nocrosscheck
+gen double ha2 = head_age^2
+quietly summarize ha2 [aw=w_base]
+local v_all = r(mean)
+quietly summarize ha2 [aw=w1e2] if responded_r1
+assert reldif(r(mean), `v_all') < 1e-7
+* a tiny hand case: 4 units, 3 respondents, balance on x; the solution is w_i = w0_i exp(a + b x_i)
+clear
+input byte resp double w0 double x
+1 1 0
+1 1 1
+1 2 1
+0 1 1
+end
+rtmweight nonresponse resp, weight(w0) method(ebalance) covariates(x) generate(we) nocrosscheck
+* targets: sum w0 = 5, sum w0 x = 4 -> mean x = 0.8; check them and the exponential-linear form
+quietly summarize we if resp
+assert reldif(r(sum), 5) < 1e-7
+quietly summarize x [aw=we] if resp
+assert reldif(r(mean), 0.8) < 1e-7
+gen double g = log(we / w0) if resp
+assert reldif(g[2], g[3]) < 1e-7      // same x, same log-ratio
+* ---------- 3c. the L2PHL forms ----------
+capture which ebalance
+if !_rc {
+    use "../data/rtm_round1.dta", clear
+    rtmweight nonresponse responded_r1, weight(w_base) method(ebalance_nobase) covariates(hhsize i.region) generate(w1n)
+    gen double fac_n = w1n / w_base if responded_r1
+    quietly summarize hhsize
+    local m_u = r(mean)
+    quietly summarize hhsize [aw=fac_n] if responded_r1
+    assert reldif(r(mean), `m_u') < 1e-5
+    quietly summarize fac_n if responded_r1
+    assert reldif(r(sum), 939) < 1e-6
+}
+use "../data/rtm_persons.dta", clear
+gen byte responded = 1
+rtmweight nonresponse responded, weight(indw) method(post) cells(region urban female age_grp) cellfile("../data/rtm_totals_persons.dta") celltotal(N_persons) generate(indw_post)
+assert r(n_cells_empty) == 0
+bysort region urban female age_grp: egen double s = total(indw_post)
+merge m:1 region urban female age_grp using "../data/rtm_totals_persons.dta", keepusing(N_persons) nogenerate keep(master match)
+assert reldif(s, N_persons) < 1e-9
+* a cell without a respondent is reported, not an error
+preserve
+drop if region == 1 & urban == 1 & female == 1 & age_grp == 1
+rtmweight nonresponse responded, weight(indw) method(post) cells(region urban female age_grp) cellfile("../data/rtm_totals_persons.dta") celltotal(N_persons) generate(indw_p2)
+assert r(n_cells_empty) == 1
+assert r(population_uncovered) > 0
+restore
+* household weights from person weights: sum and mean within household; PSU average; rescaling
+rtmweight household indw_post, hhid(hhid) generate(popw hhw)
+local rmin = r(ratio_min)
+local rmax = r(ratio_max)
+bysort hhid: egen double chk = total(indw_post)
+assert reldif(popw, chk) < 1e-9
+assert reldif(hhw * hhsize, popw) < 1e-9
+assert `rmin' > 1 - 1e-9 & `rmax' < 1 + 1e-9
+rtmweight household indw_post, hhid(hhid) generate(popw2 hhw2) psuaverage(psu) strata(stratum) totals(1.stratum=7600 2.stratum=7181 3.stratum=7940 4.stratum=7405 5.stratum=7523 6.stratum=7375 7.stratum=7466 8.stratum=7341)
+egen byte tag = tag(hhid)
+quietly summarize hhw2 if tag & stratum == 1
+assert reldif(r(sum), 7600) < 1e-9
+bysort psu: egen double sdh = sd(cond(tag, hhw2, .))
+quietly summarize sdh
+assert r(max) < 1e-9
+
 * ---------- 4. trimming by hand ----------
 clear
 set obs 10

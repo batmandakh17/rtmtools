@@ -191,3 +191,40 @@ quietly summarize responded_r1
 di as text "phone panel: " as result r(N) as text " households; round-1 response rate " as result %5.3f r(mean)
 quietly summarize responded_r2 if responded_r1
 di as text "round-2 retention among round-1 respondents " as result %5.3f r(mean)
+
+* ---------- 7. person-level file of the phone panel (for rtmweight household and the cell methods) ----------
+* one row per household member of the round-1 respondents; sex and age invented, consistent with the head
+use rtm_round1.dta, clear
+keep if responded_r1 == 1
+keep hhid psu stratum region urban hhsize head_female head_age w_base
+set seed 20261027
+expand hhsize
+bysort hhid: gen int fmid = _n
+gen byte female = cond(fmid == 1, head_female, runiform() < 0.5)
+gen int age = cond(fmid == 1, head_age, max(0, min(90, round(rnormal(head_age - 20, 15)))))
+replace age = max(0, age)
+gen byte age_grp = cond(age <= 17, 1, cond(age <= 45, 2, 3))
+label define age_grp 1 "0-17" 2 "18-45" 3 "46+"
+label values age_grp age_grp
+label var fmid "Member number"
+label var female "Member is female"
+label var age "Age of the member"
+label var age_grp "Age group of the member"
+label var hhsize "Household size"
+gen double indw = w_base
+label var indw "Person weight (baseline design weight carried to the member)"
+drop head_female head_age
+note: Synthetic data made by make_rtm_synthetic.do (rtmtools). No real person is represented.
+compress
+save rtm_persons.dta, replace
+* census cell totals of persons by region x urban x sex x age group (synthetic: scaled from the population)
+use rtm_population.dta, clear
+expand hhsize
+bysort hhid_pop: gen int fmid = _n
+set seed 20261028
+gen byte female = cond(fmid == 1, head_female, runiform() < 0.5)
+gen int age = cond(fmid == 1, head_age, max(0, min(90, round(rnormal(head_age - 20, 15)))))
+gen byte age_grp = cond(age <= 17, 1, cond(age <= 45, 2, 3))
+collapse (count) N_persons = fmid, by(region urban female age_grp)
+label var N_persons "Persons in the population (synthetic census)"
+save rtm_totals_persons.dta, replace

@@ -1,0 +1,83 @@
+/*
+  rtmweight_household.dlg -- rtmtools 0.5.0 (25oct2026)
+  Dialog for: rtmweight household (household weights from person weights, L2PHL practice)
+*/
+
+VERSION 16.0
+
+INCLUDE _std_medium
+DEFINE _dlght 380
+INCLUDE header
+
+HELP hlp1, view("help rtmweight##household")
+RESET res1
+
+DIALOG main, label("rtmweight household - Household weights from person weights") tabtitle("Data")
+BEGIN
+  TEXT     tx_pw         _lft    _top    _iwd    .,			///
+	label("Person weight (the data are the person-level file, one row per member):")
+  VARNAME  vn_pw         @       _ss     _vnwd   .,			///
+	label("Person weight")
+  TEXT     tx_hh         _lft    _ls     _iwd    .,			///
+	label("Household identifier:")
+  VARNAME  vn_hh         @       _ss     _vnwd   .,			///
+	label("Household id")						///
+	option(hhid)
+  TEXT     tx_gen        _lft    _ls     _iwd    .,			///
+	label("Names of the two new variables: population weight (sum of the members' weights) and household weight (their mean):")
+  EDIT     ed_gen        @       _ss     _vnwd   .,			///
+	label("New variables")						///
+	default("popw hhw")						///
+	option(generate)
+  CHECKBOX ck_replace    _vnsep  @       200   .,			///
+	label("Replace them if they exist")				///
+	option(replace)
+  TEXT     tx_note       _lft    _xls    _iwd    .,			///
+	label("Program practice (L2PHL scripts), not a guideline method: see the help for what the PSU average and the rescaling change.")
+END
+
+DIALOG opts, tabtitle("Settings")
+BEGIN
+  TEXT     tx_psu        _lft    _top    _iwd    .,			///
+	label("Average the household weight within (optional, e.g. the PSU):")
+  VARNAME  vn_psu        @       _ss     _vnwd   .,			///
+	label("PSU")							///
+	option(psuaverage)
+  TEXT     tx_str        _lft    _ls     _iwd    .,			///
+	label("Rescale the household weights to census household totals by stratum (optional): stratum variable")
+  VARNAME  vn_str        @       _ss     _vnwd   .,			///
+	label("Stratum")						///
+	option(strata)
+  TEXT     tx_tot        _lft    _ls     _iwd    .,			///
+	label("Totals typed as level.stratum=total pairs, e.g. 1.stratum=7600 2.stratum=7181:")
+  EDIT     ed_tot        @       _ss     _iwd    .,			///
+	label("Totals")							///
+	option(totals)
+  TEXT     tx_tf         _lft    _ls     _iwd    .,			///
+	label("or from a Stata file with the variables variable, level, total:")
+  FILE     fi_tf         @       _ss     _iwd    .,			///
+	label("Browse...")						///
+	filter("Stata data (*.dta)|*.dta|All files (*.*)|*.*")		///
+	option(totalsfile)
+END
+
+INCLUDE ifin
+
+PROGRAM command
+BEGIN
+	put "rtmweight household "
+	require main.vn_pw
+	varlist main.vn_pw
+	INCLUDE _ifin_pr
+	beginoptions
+		require main.vn_hh
+		optionarg main.vn_hh
+		require main.ed_gen
+		optionarg main.ed_gen
+		option main.ck_replace
+		optionarg opts.vn_psu
+		optionarg opts.vn_str
+		optionarg opts.ed_tot
+		optionarg opts.fi_tf
+	endoptions
+END

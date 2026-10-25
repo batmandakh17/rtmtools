@@ -1,5 +1,5 @@
-* test_calibrate.do -- calibration: svycal against the totals, ipfraking and ReGenesees cross-checks,
-* post-stratification by hand, totals from a file, bounds, and ReGenesees' documented example
+* test_calibrate.do -- calibration: svycal against the totals, the ipfraking cross-check,
+* post-stratification by hand, totals from a file, bounds; no R
 clear
 matrix drop _all
 set more off
@@ -49,54 +49,7 @@ else {
     assert reldif(w2i, w2) < 1e-5 if responded_r1
 }
 
-* ---------- 6. ReGenesees cross-check (raking, logit) ----------
-_rtm_runr find
-local rs "`r(rscript)'"
-local haveR 0
-if "`rs'" != "" {
-    tempfile a s
-    tempname fh
-    file open `fh' using "`a'", write text replace
-    file write `fh' "status=`s'" _n
-    file close `fh'
-    capture _rtm_runr, script(rtmtools_check.R) args("`a'") status("`s'") quietly
-    if !_rc & strpos("`r(message)'", "ReGenesees") & !strpos("`r(message)'", "ReGenesees MISSING") local haveR 1
-}
-if !`haveR' global rtm_test_note "$rtm_test_note (R or ReGenesees not available: ReGenesees checks skipped)"
-else {
-    rtmweight calibrate i.region i.urban [pw=w1] if responded_r1, generate(w2g) engine(regenesees) ids(hhid) strata(stratum) totals(`pairs')
-    assert reldif(w2g, w2) < 1e-7 if responded_r1
-    assert r(max_rel_diff) < 1e-8
-    rtmweight calibrate i.region i.urban [pw=w1] if responded_r1, generate(w2gl) engine(regenesees) ids(hhid) strata(stratum) totals(`pairs') distance(logit) bounds(0.7 1.5)
-    gen double gl = w2gl / w1 if responded_r1
-    quietly summarize gl
-    assert r(min) >= 0.7 - 1e-6 & r(max) <= 1.5 + 1e-6
-    assert `r(N)' == 724
-
-    * ---------- 7. ReGenesees' documented example (data.examples, pop02: ~sex + marstat) reproduced in svycal ----------
-    tempfile exdata extot exstatus exargs
-    file open `fh' using "`exargs'", write text replace
-    file write `fh' "status=`exstatus'" _n "data=`exdata'" _n "totals=`extot'" _n
-    file close `fh'
-    quietly findfile rtm_refexample.R
-    local script "`r(fn)'"
-    shell "`rs'" --vanilla "`script'" "`exargs'" > /dev/null 2>&1
-    file open `fh' using "`exstatus'", read text
-    file read `fh' line
-    file close `fh'
-    assert "`line'" == "ok"
-    preserve
-    use "`extot'", clear
-    local expairs ""
-    quietly count
-    forvalues i = 1/`r(N)' {
-        local expairs "`expairs' `=level[`i']'.`=variable[`i']'=`=total[`i']'"
-    }
-    use "`exdata'", clear
-    rtmweight calibrate i.sex i.marstat [pw=weight], generate(w_stata) totals(`expairs')
-    assert r(max_rel_diff) < 1e-8
-    * w_regenesees holds the weights that ReGenesees' e.calibrate produced for the same model
-    assert reldif(w_stata, w_regenesees) < 1e-7
-    restore
-}
+* ---------- 6. the engine without R: the regenesees options are gone ----------
+capture rtmweight calibrate i.region i.urban [pw=w1] if responded_r1, generate(w2z) engine(regenesees) totals(`pairs')
+assert _rc == 198
 di as result "test_calibrate: all assertions passed"

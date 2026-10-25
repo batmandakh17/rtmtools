@@ -2,25 +2,27 @@ v 3
 d 'RTMTOOLS': Stata tools for the design and weighting of real-time monitoring phone surveys
 d
 d rtmtools gives task teams Stata commands with dialog boxes (User > RTM tools) for
-d the weights of a phone panel round (base weights, nonresponse and attrition
-d adjustment, trimming, calibration to population totals, weighting report), for
-d design-based estimates with design effects and coefficients of variation, for
-d sample sizes, allocation across strata and probability draws from a frame, and for
-d frames of areas: checks on a list frame, grid frames from boundaries and population
-d rasters, replacement cells and splits, with spatially balanced (GRTS) draws.
-d Statistical steps run through svycal, svyset, svy and power, survwgt, ipfraking and
-d gsample; the ReGenesees calibration features and the spatial steps (sf, terra,
-d spsurvey) run through R in the background, optional.
+d the weights of a phone panel round (base weights; nonresponse and attrition
+d adjustment by weighting classes, response propensity, entropy balancing or cell
+d post-stratification; trimming; calibration to population totals; household weights
+d from person weights; weighting report), for design-based estimates, for sample
+d sizes, allocation across strata and probability draws from a frame, and for frames
+d of areas. Every run is exported (manifest, CSV tables, an Excel display workbook
+d and a dashboard page that read the export and compute nothing). The weighting
+d steps run through svycal, svyset, logit, survwgt, ipfraking and ebalance; no R.
+d A portable do-file version of the weighting workflow (portable_do_files/) can be
+d copied and adapted by another program following ADAPTATION.md.
 d Method defaults cite the HFPS sampling guidelines (Himelein et al. 2020), the
 d Listening to Tajikistan methods report, Ambel et al. 2021 and UN 2008.
 d
 d KW: survey weights
 d KW: calibration
 d KW: nonresponse adjustment
+d KW: entropy balancing
 d KW: phone survey
 d KW: real-time monitoring
 d
-d Requires: Stata version 16 (svycal: Stata 18); survwgt, ipfraking, gsample and moremata from SSC for the corresponding steps
+d Requires: Stata version 16 (svycal: Stata 18); survwgt, ebalance, ipfraking, gsample and moremata from SSC for the corresponding steps
 d
 d Distribution-Date: 20261025
 d
@@ -40,9 +42,10 @@ F rtmweight_calibrate.ado
 F rtmweight_calibrate.dlg
 F rtmweight_trim.ado
 F rtmweight_trim.dlg
+F rtmweight_household.ado
+F rtmweight_household.dlg
 F rtmweight_report.ado
 F rtmweight_report.dlg
-F rtm_calibrate.R
 F rtmsample.ado
 F rtmsample.sthlp
 F rtmsample_size.ado
@@ -71,19 +74,37 @@ F rtmest.ado
 F rtmest.sthlp
 F rtmest.dlg
 F _rtm_util.ado
-F _rtm_log.ado
+F _rtm_export.ado
+F _rtm_runr.ado
 F rtmtools_dashboard.ado
 F rtmtools_dashboard.sthlp
 F rtmtools_dashboard.html
-F _rtm_runr.ado
+F rtm_display.xlsx
 f data/rtm_baseline.dta
 f data/rtm_round1.dta
+f data/rtm_persons.dta
 f data/rtm_frame.dta
 f data/rtm_population.dta
 f data/rtm_totals_long.dta
 f data/rtm_totals_cells.dta
+f data/rtm_totals_persons.dta
 f data/rtm_totals_region.dta
 f data/make_rtm_synthetic.do
 f data/rtm_boundaries.gpkg
 f data/rtm_population.tif
 f data/make_rtm_spatial.R
+f portable_do_files/00_setup.do
+f portable_do_files/04_weights.do
+f portable_do_files/_export_helpers.do
+f portable_do_files/ADAPTATION.md
+f portable_do_files/rtm_display.xlsx
+f portable_do_files/template/rtm_baseline.dta
+f portable_do_files/template/rtm_round1.dta
+f portable_do_files/template/rtm_totals_long.dta
+f portable_do_files/template/rtm_totals_cells.dta
+f portable_do_files/template/rtm_persons.dta
+f portable_do_files/template/rtm_totals_persons.dta
+f portable_do_files/adopt_test/make_adopt_synthetic.do
+f portable_do_files/adopt_test/adopt_baseline.dta
+f portable_do_files/adopt_test/adopt_round1.dta
+f portable_do_files/adopt_test/adopt_totals_long.dta

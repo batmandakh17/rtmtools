@@ -1,12 +1,13 @@
-rtmtools tests, 25 Oct 2026 09:57:39, Stata 18
+rtmtools tests, 25 Oct 2026 13:40:22, Stata 18
 test_weights: PASS 
 test_calibrate: PASS 
 test_est: PASS 
-test_rbridge: PASS 
 test_edge: PASS 
 test_badinput: PASS 
 test_repro: PASS 
 test_sample: PASS 
 test_frame: PASS 
-test_dashboard: PASS 
+test_export: PASS 
+test_portable: PASS 
+test_rbridge: PASS 
 test_install: PASS 

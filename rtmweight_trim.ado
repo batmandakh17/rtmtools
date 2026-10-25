@@ -1,4 +1,4 @@
-*! rtmweight_trim.ado  version 0.1.0  24oct2026  rtmtools
+*! rtmweight_trim.ado  version 0.5.0  25oct2026  rtmtools
 *! Trim extreme weights, then rescale so that the trimmed weights keep the original total.
 *!
 *! rule(winsor): weights above the pct() percentile are set to that percentile value, and
@@ -14,7 +14,7 @@
 program define rtmweight_trim, rclass
     version 16
     syntax varname(numeric) [if] [in], GENerate(name) ///
-        [RULE(string) PCT(real 98) LOWpct(real 0) CAP(real -1) CAPMult(real -1) BY(varlist) NORESCALE REPLACE]
+        [RULE(string) PCT(real 98) LOWpct(real 0) CAP(real -1) CAPMult(real -1) BY(varlist) NORESCALE ID(varname) REPLACE]
     local w `varlist'
     local rule = lower("`rule'")
     if "`rule'" == "" {
@@ -145,4 +145,35 @@ program define rtmweight_trim, rclass
     local cmd `"rtmweight trim `0'"'
     return local cmdline `"`cmd'"'
     _rtm_util record, step(trim) cmd(`"`cmd'"') var(`generate')
+
+    * ---- export tables and settings (schema rtm-export-1.0) ----
+    capture _rtm_export wstage, frame(_rtmx_ws) stage("before trimming") var(`w') cond(`touse')
+    capture _rtm_export wstage, frame(_rtmx_ws) stage("after trimming") var(`generate') cond(`touse') ntrimmed(`=`ntrim_hi' + `ntrim_lo'')
+    capture _rtm_export table, name(weight_stages) frame(_rtmx_ws)
+    * flagged units: every weight that was lowered or raised, with its id (or observation number)
+    capture frame drop _rtmx_fl
+    frame create _rtmx_fl str32 table str32 unit_id str32 stage double(value) str64 reason
+    tempvar trimmed
+    quietly gen byte `trimmed' = `touse' & (`w' > `hi' | ("`rule'" == "winsor" & `lowpct' > 0 & `w' < `lo'))
+    quietly count if `trimmed'
+    if r(N) > 0 & r(N) <= 5000 {
+        forvalues i = 1/`=_N' {
+            if `trimmed'[`i'] {
+                if "`id'" != "" local uid = string(`id'[`i'])
+                else local uid "obs `i'"
+                local why = cond(`w'[`i'] > `hi'[`i'], "weight above the upper bound `=string(`hi'[`i'], "%12.4g")'", "weight below the lower bound")
+                frame post _rtmx_fl ("weight_units") ("`uid'") ("`w'") (`w'[`i']) ("`why'")
+            }
+        }
+    }
+    capture _rtm_export table, name(flags) frame(_rtmx_fl)
+    capture _rtm_export setting, key(rule) value("`rule'") source("HFPS Vol. 2 p. 11 (winsor at the 98th percentile); UN 2008 section 6.8 (cap and rescale)")
+    if "`rule'" == "winsor" capture _rtm_export setting, key(pct) value("`pct'")
+    if "`rule'" == "winsor" & `lowpct' > 0 capture _rtm_export setting, key(lowpct) value("`lowpct'")
+    if `cap' > 0 capture _rtm_export setting, key(cap) value("`cap'")
+    if `capmult' > 0 capture _rtm_export setting, key(capmult) value("`capmult'")
+    if "`by'" != "" capture _rtm_export setting, key(by) value("`by'")
+    capture _rtm_export setting, key(rescale) value("`=cond("`norescale'" == "", "yes", "no")'")
+    capture _rtm_export setting, key(weight) value("`w'")
+    capture _rtm_export setting, key(generate) value("`generate'")
 end

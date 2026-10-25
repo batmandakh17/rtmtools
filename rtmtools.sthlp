@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.4.0  24oct2026  rtmtools}{...}
+{* *! version 0.5.0  24oct2026  rtmtools}{...}
 {vieweralsosee "rtmweight" "help rtmweight"}{...}
 {vieweralsosee "rtmsample" "help rtmsample"}{...}
 {vieweralsosee "rtmframe" "help rtmframe"}{...}
@@ -15,15 +15,15 @@
 
 {pstd}
 {cmd:rtmtools} gives task teams and survey firms Stata commands, with dialog boxes under
-{bf:User > RTM tools}, for the statistical design work around a phone panel. Version 0.4.0
+{bf:User > RTM tools}, for the statistical design work around a phone panel. Version 0.5.0
 covers:
 
-{phang2}{helpb rtmweight}: base weights, nonresponse and attrition adjustment, trimming, calibration to population totals, and a weighting report (Excel and Word).{p_end}
+{phang2}{helpb rtmweight}: base weights; nonresponse and attrition adjustment by weighting classes, logit or probit propensity, entropy balancing with or without base weights, or cell post-stratification (every choice labeled with its source, including the L2 programs\' practice); trimming; calibration to population totals; household weights from person weights; and a weighting report (Excel and Word). No step uses R.{p_end}
 {phang2}{helpb rtmest}: design-based estimates (means, proportions, totals, ratios) by domain with standard errors, design effects and coefficients of variation, with the calibration in the variance.{p_end}
 {phang2}{helpb rtmsample}: sample size per domain (level or change, with design effect, nonresponse and attrition reserve), allocation across strata, and probability draws from a frame (simple random, systematic, PPS) with inclusion probabilities, design weights, reserve units and a recorded seed.{p_end}
 {phang2}{helpb rtmframe}: checks on a list frame of areas; grid frames from boundary files and a population raster (R), with replacement cells and splits of large cells; the spatially balanced draw from a grid frame is {helpb rtmsample##grid:rtmsample grid} (R, spsurvey).{p_end}
-{phang2}{helpb rtmtools_dashboard}: a live web page of the runs, refreshed while a do-file runs: workflow progress, results and charts of every command, and the commands to reproduce them.{p_end}
-{phang2}{helpb rtmtools_setup}: the menu, dependency checks and the R check.{p_end}
+{phang2}{helpb rtmtools_dashboard}: every run is exported (manifest, CSV tables, an Excel display workbook) into the export folder, and a self-contained page shows the progress and results of the runs, refreshed while a do-file runs; the workbook and the page read the export and compute nothing. A portable do-file version of the weighting workflow ({cmd:portable_do_files/04_weights.do} with {cmd:ADAPTATION.md}) can be copied and adapted by another program.{p_end}
+{phang2}{helpb rtmtools_setup}: the menu and the dependency checks.{p_end}
 
 {pstd}
 Planned for later versions: listing support ({cmd:rtmlist}) and Fay-Herriot small-area estimates
@@ -33,9 +33,8 @@ Planned for later versions: listing support ({cmd:rtmlist}) and Fay-Herriot smal
 Principles: every statistical step runs through an official Stata command ({helpb svycal},
 {helpb svyset}, {helpb svy}, {helpb power}) or an established user-written one ({helpb survwgt},
 {helpb ipfraking}, {helpb gsample}), or arithmetic from a cited formula with hand-calculated tests;
-R is used only where Stata has no equivalent (the ReGenesees calibration features; grids,
-rasters and spatially balanced draws through sf, terra and spsurvey) and runs in the
-background, optional; every method default cites a source in the help file; data stay
+no weighting step uses R (the grid frames and spatially balanced draws still do until they
+are rebuilt without it); every method default cites a source in the help file; data stay
 on your machine; every command writes its settings and version stamp to the dataset's notes
 and {cmd:r()}, and the dialogs write the full command to the Review window.
 
@@ -50,7 +49,7 @@ and {cmd:r()}, and the dialogs write the full command to the Review window.
 
 {pstd}
 Minimum Stata version: 16; {cmd:rtmweight calibrate} with its default engine needs {helpb svycal}
-(Stata 18); on 16 and 17 use {cmd:engine(ipfraking)} or {cmd:engine(regenesees)}.
+(Stata 18); on 16 and 17 use {cmd:engine(ipfraking)}.
 
 
 {title:Method sources}
@@ -62,4 +61,4 @@ Surveys in Developing Countries); Broccolini, Seitz and Azevedo 2017 (Listening 
 methods report); Ambel, McGee and Tsegay 2021 (Reducing Bias in Phone Survey Samples);
 United Nations 2008 (Designing Household Survey Samples); Grosh and Mu{c n~}oz 1996 (LSMS
 manual); Oseni et al. 2021 (Capturing What Matters); the Stata Survey Data Reference Manual;
-Kolenikov 2014, 2019 (ipfraking); Zardetto 2015 (ReGenesees).
+Kolenikov 2014, 2019 (ipfraking); Hainmueller 2012 and Hainmueller and Xu 2013 (entropy balancing).

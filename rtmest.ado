@@ -10,15 +10,15 @@
 program define rtmest, rclass
     version 16
     * wrapper: logs the run for the live dashboard (rtmtools_dashboard), then hands over
-    capture _rtm_log start, tool("rtmest") cmd(`"rtmest `0'"')
+    capture _rtm_export start, workflow(estimation) step(estimate) cmd(`"rtmest `0'"')
     capture noisily rtmest_main `0'
     local rc = _rc
-    if `rc' {
-        capture _rtm_log error, tool("rtmest") cmd(`"rtmest `0'"') rc(`rc')
-        exit `rc'
-    }
-    * log first: return add empties the live r() that the log reads
-    capture _rtm_log done, tool("rtmest") cmd(`"rtmest `0'"')
+    tempname hold
+    _return hold `hold'
+    _return restore `hold', hold
+    capture _rtm_export done, rc(`rc')
+    _return restore `hold'
+    if `rc' exit `rc'
     return add
 end
 

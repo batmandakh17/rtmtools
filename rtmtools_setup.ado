@@ -1,4 +1,4 @@
-*! rtmtools_setup.ado  version 0.1.0  24oct2026  rtmtools
+*! rtmtools_setup.ado  version 0.5.0  25oct2026  rtmtools
 *! One-time setup: adds the RTM tools entries to Stata's User menu for this session, can
 *! append the same lines to profile.do (so that the menu is there at every start), checks the
 *! Stata version and the user-written commands the package relies on, installs the missing
@@ -7,11 +7,11 @@
 *!   rtmtools_setup                      menu for this session + a check report
 *!   rtmtools_setup, profile             also append the menu lines to profile.do (asks first in the GUI)
 *!   rtmtools_setup, install             install missing SSC dependencies (needs internet)
-*!   rtmtools_setup, path("...Rscript")  save the path to Rscript
 *!   rtmtools_setup, check nomenu        check only
+*!   rtmtools_setup, r                   also look for R (only the frame and grid steps still use it; being replaced)
 program define rtmtools_setup, rclass
     version 16
-    syntax [, PROFile INSTall PATH(string) CHECK NOMENU NOR MENUonly]
+    syntax [, PROFile INSTall PATH(string) CHECK NOMENU NOR R MENUonly]
     if "`menuonly'" != "" {
         * the line profile.do runs at start-up: add the menu, nothing else, no output
         capture _rtmtools_menu
@@ -27,7 +27,7 @@ program define rtmtools_setup, rclass
         exit 9
     }
     capture which svycal
-    if _rc di as txt "  svycal not available: rtmweight calibrate uses engine(ipfraking) or engine(regenesees)"
+    if _rc di as txt "  svycal not available: rtmweight calibrate uses engine(ipfraking); method(ebalance) needs svycal"
     else di as text "  svycal available"
 
     * ---- menu ----
@@ -48,7 +48,7 @@ program define rtmtools_setup, rclass
     * ---- dependencies ----
     di as text _n "Stata commands used by the package:"
     local missing ""
-    foreach dep in survwgt ipfraking gsample fhsae sreweight {
+    foreach dep in survwgt ebalance ipfraking gsample geoinpoly sreweight {
         capture which `dep'
         if _rc {
             di as text %-12s "`dep'" as err "missing" as text "   (ssc install `dep')"
@@ -71,11 +71,11 @@ program define rtmtools_setup, rclass
         }
     }
     else if "`missing'" != "" di as text "Run {stata rtmtools_setup, install} to install the missing commands (needs an internet connection)."
-    di as text "Which steps need which command: rtmweight nonresponse method(classes) needs survwgt; rtmweight calibrate engine(ipfraking) needs ipfraking; rtmsample draw needs gsample and moremata. fhsae and sreweight are for the small-area and later commands."
+    di as text "Which steps need which command: rtmweight nonresponse method(classes) needs survwgt and method(ebalance_nobase) needs ebalance (ebalance also cross-checks method(ebalance)); rtmweight calibrate engine(ipfraking) needs ipfraking; rtmsample draw needs gsample and moremata; geoinpoly is for the grid frames; sreweight gives the bounded logit distance by hand."
 
-    * ---- R ----
-    if "`nor'" == "" {
-        di as text _n "R (optional: used by rtmframe grid, replace and split (sf, terra), rtmsample grid (spsurvey) and rtmweight calibrate, engine(regenesees)):"
+    * ---- R (opt-in; no weighting step uses it any more) ----
+    if "`r'" != "" & "`nor'" == "" {
+        di as text _n "R (used only by rtmframe grid, replace and split and rtmsample grid until they are rebuilt without R):"
         _rtm_runr find
         local rs "`r(rscript)'"
         if "`rs'" == "" {
@@ -117,6 +117,7 @@ program define _rtmtools_menu
     window menu append item "Weights" "Nonresponse and attrition adjustment..." "db rtmweight_nonresponse"
     window menu append item "Weights" "Calibrate to population totals..." "db rtmweight_calibrate"
     window menu append item "Weights" "Trim extreme weights..." "db rtmweight_trim"
+    window menu append item "Weights" "Household weights from person weights..." "db rtmweight_household"
     window menu append item "Weights" "Weighting report..." "db rtmweight_report"
     window menu append submenu "RTM tools" "Frame"
     window menu append item "Frame" "Check a list frame of areas..." "db rtmframe_list"
@@ -130,8 +131,8 @@ program define _rtmtools_menu
     window menu append item "Sample" "Spatially balanced draw from a grid frame (needs R)..." "db rtmsample_grid"
     window menu append item "RTM tools" "Estimate with the design..." "db rtmest"
     window menu append separator "RTM tools"
-    window menu append item "RTM tools" "Live dashboard of the runs" "rtmtools_dashboard"
-    window menu append item "RTM tools" "Check R and dependencies" "rtmtools_setup, check nomenu"
+    window menu append item "RTM tools" "Dashboard and export folder" "rtmtools_dashboard"
+    window menu append item "RTM tools" "Check dependencies" "rtmtools_setup, check nomenu"
     window menu append item "RTM tools" "Help and about rtmtools" "help rtmtools"
     window menu refresh
 end

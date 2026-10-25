@@ -17,14 +17,14 @@ program define rtmsample, rclass
         di as err "rtmsample: unknown subcommand `sub'; use size, allocate, draw or grid"
         exit 198
     }
-    capture _rtm_log start, tool("rtmsample `full'") cmd(`"rtmsample `full' `0'"')
+    capture _rtm_export start, workflow(sampling) step(`full') cmd(`"rtmsample `full' `0'"')
     capture noisily rtmsample_`full' `0'
     local rc = _rc
-    if `rc' {
-        capture _rtm_log error, tool("rtmsample `full'") cmd(`"rtmsample `full' `0'"') rc(`rc')
-        exit `rc'
-    }
-    * log first: return add empties the live r() that the log reads
-    capture _rtm_log done, tool("rtmsample `full'") cmd(`"rtmsample `full' `0'"')
+    tempname hold
+    _return hold `hold'
+    _return restore `hold', hold
+    capture _rtm_export done, rc(`rc')
+    _return restore `hold'
+    if `rc' exit `rc'
     return add
 end

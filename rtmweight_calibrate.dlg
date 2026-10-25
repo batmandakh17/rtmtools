@@ -1,12 +1,12 @@
 /*
-  rtmweight_calibrate.dlg -- rtmtools 0.1.0 (24oct2026)
+  rtmweight_calibrate.dlg -- rtmtools 0.5.0 (25oct2026)
   Dialog for: rtmweight calibrate
 */
 
 VERSION 16.0
 
 INCLUDE _std_medium
-DEFINE _dlght 440
+DEFINE _dlght 400
 INCLUDE header
 
 HELP hlp1, view("help rtmweight##calibrate")
@@ -30,30 +30,12 @@ LIST eng_list
 BEGIN
 	"Stata: svycal (Stata 18)"
 	"Stata: ipfraking (raking; trimming of the factors as approximate bounds)"
-	"R: ReGenesees (logit distance, exact bounds, constrained trimming, cluster-constant weights)"
 END
 
 LIST eng_vals
 BEGIN
 	stata
 	ipfraking
-	regenesees
-END
-
-LIST dist_list
-BEGIN
-	"as the method (raking or linear)"
-	"logit (needs bounds)"
-	"raking"
-	"linear"
-END
-
-LIST dist_vals
-BEGIN
-	""
-	logit
-	raking
-	linear
 END
 
 DIALOG main, label("rtmweight calibrate - Calibrate weights to population totals") tabtitle("Data")
@@ -112,15 +94,8 @@ BEGIN
 	default(stata)							///
 	option(engine)							///
 	onselchange(program eng_changed)
-  TEXT     tx_dist       _lft    _ls     _iwd    .,			///
-	label("Distance (ReGenesees only):")
-  COMBOBOX cb_dist       @       _ss     _iwd    .,			///
-	dropdownlist							///
-	contents(dist_list)						///
-	values(dist_vals)						///
-	option(distance)
   TEXT     tx_bnd        _lft    _ls     _iwd    .,			///
-	label("Bounds on the weight ratios (optional; no cited default). Stata/ipfraking: lower and upper limit; ReGenesees: bounds(low high)")
+	label("Bounds on the weight ratios (optional; no cited default): lower and upper limit (method regress: truncated linear; ipfraking: trimming)")
   TEXT     tx_ll         _lft    _ss     60      .,			///
 	label("Lower:")
   EDIT     ed_ll         +60     @       60  .,			///
@@ -133,22 +108,6 @@ BEGIN
 	label("Upper limit")						///
 	numonly								///
 	option(ul)
-  TEXT     tx_trim       _lft    _ls     _iwd    .,			///
-	label("ReGenesees trimcal: keep the calibrated weights within (low high), preserving the totals:")
-  EDIT     ed_trim       @       _ss     _vnwd   .,			///
-	label("trimcal range")						///
-	option(trimcal)
-  TEXT     tx_ids        _lft    _ls     _iwd    .,			///
-	label("ReGenesees: unit id (unique) and strata:")
-  VARNAME  vn_ids        @       _ss     _vnwd   .,			///
-	label("Unit id")						///
-	option(ids)
-  VARNAME  vn_str        _vnsep  @       _vnwd   .,			///
-	label("Strata")							///
-	option(strata)
-  CHECKBOX ck_agg        _lft    _ms     _iwd    .,			///
-	label("Weights constant within the id (calibrate at the cluster level)")	///
-	option(aggregate)
 END
 
 SCRIPT tot_pairs
@@ -163,28 +122,9 @@ BEGIN
 	main.fi_tot.enable
 END
 
-PROGRAM eng_changed
-BEGIN
-	if meth.cb_eng.iseq("regenesees") {
-		call meth.cb_dist.enable
-		call meth.ed_trim.enable
-		call meth.vn_ids.enable
-		call meth.vn_str.enable
-		call meth.ck_agg.enable
-	}
-	else {
-		call meth.cb_dist.disable
-		call meth.ed_trim.disable
-		call meth.vn_ids.disable
-		call meth.vn_str.disable
-		call meth.ck_agg.disable
-	}
-END
-
 SCRIPT POSTINIT
 BEGIN
 	script tot_pairs
-	program eng_changed
 END
 
 INCLUDE ifin
@@ -211,22 +151,7 @@ BEGIN
 		}
 		optionarg meth.cb_meth
 		optionarg meth.cb_eng
-		if meth.cb_eng.iseq("regenesees") {
-			if !meth.cb_dist.iseq("") {
-				optionarg meth.cb_dist
-			}
-			if meth.ed_ll | meth.ed_ul {
-				put " bounds(" meth.ed_ll " " meth.ed_ul ")"
-			}
-			optionarg meth.ed_trim
-			require meth.vn_ids
-			optionarg meth.vn_ids
-			optionarg meth.vn_str
-			option meth.ck_agg
-		}
-		else {
-			optionarg meth.ed_ll
-			optionarg meth.ed_ul
-		}
+		optionarg meth.ed_ll
+		optionarg meth.ed_ul
 	endoptions
 END

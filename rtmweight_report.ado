@@ -1,4 +1,4 @@
-*! rtmweight_report.ado  version 0.1.0  24oct2026  rtmtools
+*! rtmweight_report.ado  version 0.5.0  25oct2026  rtmtools
 *! Weighting report: the weight variables of each stage side by side, the step-to-step
 *! adjustment factors, Kish's design effect from unequal weights (1 + CV^2), optional checks
 *! of calibrated totals against targets, graphs, and export to Excel (putexcel) and to a Word
@@ -7,7 +7,7 @@
 *! deviations); CWM 2021 section 8.2 (document the calculation of weights); HFPS Vol. 2 p. 12.
 program define rtmweight_report, rclass
     version 16
-    syntax varlist(numeric min=1) [if] [in] [, TOTals(string) BY(varname) EXcel(string) DOCX(string) GRaph NOTEs]
+    syntax varlist(numeric min=1) [if] [in] [, TOTals(string) BY(varname) EXcel(string) DOCX(string) GRaph NOTEs ID(varname) UNITS]
     marksample touse, novarlist
     local K : word count `varlist'
 
@@ -271,4 +271,72 @@ program define rtmweight_report, rclass
     return matrix summary = `S'
     return local weights "`varlist'"
     return local steps "`steps'"
+
+    * ---- export tables and settings (schema rtm-export-1.0) ----
+    foreach w of local varlist {
+        capture _rtm_export wstage, frame(_rtmx_ws) stage("`w'") var(`w') cond(`touse')
+    }
+    capture _rtm_export table, name(weight_stages) frame(_rtmx_ws)
+    if "`by'" != "" {
+        capture frame drop _rtmx_wg
+        frame create _rtmx_wg str32 stage str32 variable str32 group_var str80 group double(n sum mean cv)
+        quietly levelsof `by' if `touse', local(lv)
+        local vl : value label `by'
+        foreach w of local varlist {
+            foreach l of local lv {
+                _rtm_util wsum `w' if `touse' & `by' == `l'
+                if "`vl'" != "" local gl : label `vl' `l'
+                else local gl "`l'"
+                frame post _rtmx_wg ("`w'") ("`w'") ("`by'") ("`=usubstr("`gl'", 1, 80)'") (r(N)) (r(sum)) (r(mean)) (r(cv))
+            }
+        }
+        capture _rtm_export table, name(weight_groups) frame(_rtmx_wg)
+    }
+    if "`totals'" != "" {
+        capture frame drop _rtmx_cf
+        frame create _rtmx_cf str64 constraint double(target before after diff rel_diff converged iterations)
+        local first : word 1 of `varlist'
+        local i 0
+        foreach tok of local totals {
+            local ++i
+            local lev = regexs(1)
+            if !regexm("`tok'", "^([0-9]+)\.([A-Za-z_][A-Za-z0-9_]*)=([0-9.eE+-]+)$") continue
+            local lev = regexs(1)
+            local var = regexs(2)
+            local val = regexs(3)
+            quietly summarize `first' if `touse' & `var' == `lev'
+            local bef = r(sum)
+            frame post _rtmx_cf ("`var'==`lev'") (`val') (`bef') (`T'[`i', 2]) (`T'[`i', 2] - `val') (`T'[`i', 3]) (.) (.)
+        }
+        capture _rtm_export table, name(calibration_fit) frame(_rtmx_cf)
+    }
+    if "`units'" != "" {
+        * one row per unit with every weight stage (identifiers only)
+        capture frame drop _rtmx_wu
+        quietly count if `touse'
+        if r(N) <= 200000 {
+            tempvar obsno
+            quietly gen long `obsno' = _n
+            frame put `obsno' `id' `varlist' if `touse', into(_rtmx_wu)
+            frame _rtmx_wu {
+                if "`id'" != "" {
+                    capture tostring `id', generate(unit_id) force
+                    if _rc quietly gen str32 unit_id = string(`id')
+                    quietly drop `id'
+                }
+                else quietly gen str32 unit_id = "obs " + string(`obsno')
+                quietly drop `obsno'
+                quietly gen str32 stratum = ""
+                quietly gen str32 psu = ""
+                quietly gen byte flag = 0
+                order unit_id stratum psu
+            }
+            capture _rtm_export table, name(weight_units) frame(_rtmx_wu)
+        }
+        else di as txt "(weight_units not exported: more than 200,000 units)"
+    }
+    capture _rtm_export setting, key(weights) value("`varlist'")
+    if "`by'" != "" capture _rtm_export setting, key(by) value("`by'")
+    if "`excel'" != "" capture _rtm_export setting, key(excel_report) value("`excel'")
+    if "`docx'" != "" capture _rtm_export setting, key(word_note) value("`docx'")
 end

@@ -1,65 +1,64 @@
-*! rtmtools_dashboard.ado  version 0.4.0  25oct2026  rtmtools
-*! Live dashboard of the runs. Every rtmtools command appends its start, progress, results or
-*! error to a run log (rtmtools_runs.js in the working directory, or the file set here). This
-*! command writes a self-contained page, rtmtools_dashboard.html, next to the log and opens it
-*! in the browser; the page reads the log and refreshes itself every few seconds, so it follows
-*! a do-file as it runs. No network: the page loads nothing but the two local files.
-*!   rtmtools_dashboard                  write the page and open it
-*!   rtmtools_dashboard, file(path)      use (and from now on write) another log file
-*!   rtmtools_dashboard, off | on        stop or resume logging in this session
-*!   rtmtools_dashboard, clear           delete the log and start a fresh dashboard
+*! rtmtools_dashboard.ado  version 0.5.0  25oct2026  rtmtools
+*! The export folder and the dashboard. Every rtmtools command writes its run (schema
+*! rtm-export-1.0) into a folder under the export folder and appends one line to its live index,
+*! rtm_exports.js. This command sets the export folder, writes the self-contained dashboard page
+*! next to the index and opens it in the browser; the page reads the index and refreshes itself
+*! while commands run. No network: the page loads nothing but the local files.
+*!   rtmtools_dashboard                  write the page into the export folder and open it
+*!   rtmtools_dashboard, dir(path)       use (and from now on write to) another export folder
+*!   rtmtools_dashboard, off | on        stop or resume exporting in this session
+*!   rtmtools_dashboard, clear           delete the live index (the run folders stay)
 *!   rtmtools_dashboard, nobrowser       write the page without opening the browser
 program define rtmtools_dashboard, rclass
     version 16
-    syntax [, FILE(string) OFF ON CLEAR NOBrowser]
+    syntax [, DIR(string) OFF ON CLEAR NOBrowser]
     if "`off'" != "" & "`on'" != "" {
         di as err "choose off or on, not both"
         exit 198
     }
     if "`off'" != "" {
-        global RTM_DASHBOARD "off"
-        di as txt "rtmtools: run logging is off for this session ({bf:rtmtools_dashboard, on} resumes it)"
+        global RTM_EXPORT "off"
+        di as txt "rtmtools: exporting is off for this session ({bf:rtmtools_dashboard, on} resumes it)"
         exit
     }
     if "`on'" != "" {
-        global RTM_DASHBOARD ""
-        di as txt "rtmtools: run logging is on"
+        global RTM_EXPORT ""
+        di as txt "rtmtools: exporting is on"
     }
-    if `"`file'"' != "" global RTM_DASHBOARD_FILE `"`file'"'
-    local log "$RTM_DASHBOARD_FILE"
-    if `"`log'"' == "" local log "rtmtools_runs.js"
-    local log : subinstr local log "\" "/", all
-    if !regexm(`"`log'"', "^(/|[A-Za-z]:)") local log `"`c(pwd)'/`log'"'
-    local log : subinstr local log "//" "/", all
+    if `"`dir'"' != "" global RTM_EXPORT_DIR `"`dir'"'
+    local d "$RTM_EXPORT_DIR"
+    if `"`d'"' == "" local d "rtm_exports"
+    local d : subinstr local d "\" "/", all
+    if !regexm(`"`d'"', "^(/|[A-Za-z]:)") local d `"`c(pwd)'/`d'"'
+    local d : subinstr local d "//" "/", all
+    if substr(`"`d'"', -1, 1) == "/" local d = substr(`"`d'"', 1, length(`"`d'"') - 1)
+    capture mkdir `"`d'"'
+    local idx `"`d'/rtm_exports.js"'
     if "`clear'" != "" {
-        capture erase `"`log'"'
-        di as txt `"rtmtools: run log cleared"'
+        capture erase `"`idx'"'
+        di as txt `"rtmtools: live index cleared (the run folders in `d' were kept)"'
     }
-    local dir = substr(`"`log'"', 1, strrpos(`"`log'"', "/"))
-    local base = substr(`"`log'"', strrpos(`"`log'"', "/") + 1, .)
-    local html `"`dir'rtmtools_dashboard.html"'
+    local html `"`d'/rtmtools_dashboard.html"'
     quietly findfile rtmtools_dashboard.html
-    local tpl `"`r(fn)'"'
-    copy `"`tpl'"' `"`html'"', replace
-    * the page reads this small file to learn the log's name and the folder
-    local base_e : subinstr local base `"\"' `"\\"', all
-    local base_e : subinstr local base_e `"""' `"\""', all
-    local dir_e : subinstr local dir `"\"' `"\\"', all
-    local dir_e : subinstr local dir_e `"""' `"\""', all
+    copy `"`r(fn)'"' `"`html'"', replace
     tempname fh
-    quietly file open `fh' using `"`dir'rtmtools_dashboard_config.js"', write text replace
-    file write `fh' `"var RTM_LOG_FILE = "`base_e'";"' _n `"var RTM_FOLDER = "`dir_e'";"' _n
-    file close `fh'
-    capture confirm file `"`log'"'
+    capture confirm file `"`idx'"'
     if _rc {
-        quietly file open `fh' using `"`log'"', write text replace
-        file write `fh' "// rtmtools run log: one RTM_RUNS.push({...}); statement per event, written by the commands" _n
+        quietly file open `fh' using `"`idx'"', write text replace
+        file write `fh' "// rtmtools export index: one RTM_EXPORTS.push({...}); per run, written by the commands" _n
         file close `fh'
     }
+    * the page reads this small file to learn the folder (for its source notes)
+    local d_e : subinstr local d `"\"' `"\\"', all
+    local d_e : subinstr local d_e `"""' `"\""', all
+    quietly file open `fh' using `"`d'/rtmtools_dashboard_config.js"', write text replace
+    file write `fh' `"var RTM_FOLDER = "`d_e'";"' _n
+    file close `fh'
+    di as txt `"Export folder: `d'"'
     di as txt `"Dashboard written: {browse "`html'"}"'
-    di as txt `"It reads `base' in the same folder and refreshes itself while rtmtools commands run."'
+    di as txt `"It reads rtm_exports.js in the same folder and refreshes itself while rtmtools commands run."'
     if "`nobrowser'" == "" {
-        * hand the file to the operating system's default browser (never to Stata's own viewer,
+        * hand the file to the operating system's default browser (never to Stata's viewer,
         * which is not a web browser and cannot show the page)
         if "`c(os)'" == "Windows" {
             local winpath : subinstr local html "/" "\", all
@@ -71,5 +70,5 @@ program define rtmtools_dashboard, rclass
         else di as txt "Opening the page in your browser. It stays open and refreshes itself; close it when done."
     }
     return local html `"`html'"'
-    return local log `"`log'"'
+    return local dir `"`d'"'
 end
