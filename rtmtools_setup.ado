@@ -74,6 +74,9 @@ end
 program define _rtmtools_menu
     version 16
     window menu append submenu "stUser" "RTM tools"
+    window menu append item "RTM tools" "Start here (guided steps)" "rtmtools_start"
+    window menu append item "RTM tools" "Run from the input workbook..." "db rtminput"
+    window menu append separator "RTM tools"
     window menu append submenu "RTM tools" "Weights"
     window menu append item "Weights" "Base (design) weights..." "db rtmweight_base"
     window menu append item "Weights" "Nonresponse and attrition adjustment..." "db rtmweight_nonresponse"
@@ -95,13 +98,13 @@ program define _rtmtools_menu
     window menu append submenu "RTM tools" "Listing"
     window menu append item "Listing" "Listing forms for the selected areas..." "db rtmlist_prepare"
     window menu append item "Listing" "Import the completed listing..." "db rtmlist_import"
-        window menu append item "RTM tools" "Run from the input workbook..." "db rtminput"
     window menu append item "RTM tools" "Estimate with the design..." "db rtmest"
     window menu append separator "RTM tools"
     window menu append item "RTM tools" "Dashboard and export folder" "rtmtools_dashboard"
     window menu append item "RTM tools" "Check dependencies" "rtmtools_setup, check nomenu"
     window menu append item "RTM tools" "Help and about rtmtools" "help rtmtools"
     window menu refresh
+    di as text `"Start here: {stata rtmtools_start:the guided steps} (User > RTM tools > Start here)"'
 end
 
 * ---- append the menu lines to profile.do -------------------------------------------------------

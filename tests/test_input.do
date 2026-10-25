@@ -198,4 +198,34 @@ quietly count if ph_sel == 1
 assert r(N) == 600
 cd "`here'"
 global RTM_EXPORT "off"
+
+* ---------- 8. the plain-language summaries and the guided page ----------
+cd "`d'"
+rtminput using "rtm_inputs.xlsx", sampling outdir("out_sum")
+local sf "`r(summary)'"
+confirm file "`sf'"
+assert strpos("`sf'", "out_sum/rtm_summary_sampling_")
+local html = fileread("`sf'")
+assert strpos(`"`macval(html)'"', "Sampling run")
+assert strpos(`"`macval(html)'"', "100</b> areas were selected")
+assert strpos(`"`macval(html)'"', "Areas allocated")
+assert strpos(`"`macval(html)'"', "rtm_sample_households.dta")
+rtminput using "rtm_inputs.xlsx", weights round(1) outdir("out_sum")
+local sf "`r(summary)'"
+local html = fileread("`sf'")
+assert strpos(`"`macval(html)'"', "Weights of round 1")
+assert strpos(`"`macval(html)'"', "Nonresponse adjustment")
+assert strpos(`"`macval(html)'"', "calibrated by <b>rake</b>")
+assert strpos(`"`macval(html)'"', "estimates is <b>w2</b>")
+rtminput using "`pw'", check
+local sf "`r(summary)'"
+local html = fileread("`sf'")
+assert strpos(`"`macval(html)'"', "8 error(s) to fix")
+assert strpos(`"`macval(html)'"', "appears more than once")
+* the guided page and its helpers run in batch without opening anything
+rtmtools_start, folder
+rtmtools_start, summary
+capture noisily help rtmtools_start
+assert _rc == 0
+cd "`here'"
 di as result "test_input: the workbook checks, runs and reproduces the commands; the CSV folder and the portable filler agree"

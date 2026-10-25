@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.6.0  25oct2026  rtmtools}{...}
+{* *! version 0.6.1  25oct2026  rtmtools}{...}
 {vieweralsosee "rtmweight" "help rtmweight"}{...}
 {vieweralsosee "rtmsample" "help rtmsample"}{...}
 {vieweralsosee "rtmframe" "help rtmframe"}{...}
@@ -15,8 +15,8 @@
 
 {pstd}
 {cmd:rtmtools} gives task teams and survey firms Stata commands, with dialog boxes under
-{bf:User > RTM tools}, for the statistical design work around a phone panel. Version 0.6.0
-(the four workflows in four forms, and one input workbook that drives them: {helpb rtminput}) covers:
+{bf:User > RTM tools}, for the statistical design work around a phone panel. Version 0.6.1
+(the four workflows in four forms, one input workbook that drives them, {helpb rtminput}, and the guided route {helpb rtmtools_start}) covers:
 
 {phang2}{helpb rtmweight}: base weights; nonresponse and attrition adjustment by weighting classes, logit or probit propensity, entropy balancing with or without base weights, or cell post-stratification (every choice labeled with its source, including the L2 programs\' practice); trimming; calibration to population totals; household weights from person weights; and a weighting report (Excel and Word). No step uses R.{p_end}
 {phang2}{helpb rtmest}: design-based estimates (means, proportions, totals, ratios) by domain with standard errors, design effects and coefficients of variation, with the calibration in the variance.{p_end}
@@ -48,6 +48,7 @@ and {cmd:r()}, and the dialogs write the full command to the Review window.
 {phang2}{cmd:. rtmtools_setup, profile}      {it:(menu at every start)}{p_end}
 {phang2}{cmd:. net get rtmtools}            {it:(sample data into the current folder)}{p_end}
 {phang2}{cmd:. net get rtmtools_portable}   {it:(portable do-files, template data and ADAPTATION.md)}{p_end}
+{phang2}{cmd:. rtmtools_start}                {it:(the guided steps for someone who does not know Stata: {helpb rtmtools_start})}{p_end}
 {phang2}{cmd:. rtminput, template}             {it:(the input workbook: fill it in, then rtminput using rtm_inputs.xlsx, check | sampling | weights round(#); see {helpb rtminput})}{p_end}
 {phang2}{cmd:. rtmtools_dashboard}        {it:(the live dashboard in the browser)}{p_end}
 {phang2}{cmd:. help rtmweight}{p_end}

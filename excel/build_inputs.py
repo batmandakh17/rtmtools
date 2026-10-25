@@ -17,6 +17,8 @@ import pandas as pd
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.datavalidation import DataValidation
+from openpyxl.formatting.rule import FormulaRule
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
@@ -84,6 +86,67 @@ DESIGN = [
     ("report_files", "yes", "yes | no: write the Word method note and the Excel report into output_dir"),
 ]
 
+# plain questions for the Design rows, and the dropdown lists
+QUESTIONS = {
+    "project": "What is the program called?",
+    "seed": "Which seed should every draw use (any whole number; keep it to repeat the draw)?",
+    "output_dir": "Which folder should the outputs go to?",
+    "target": "Is the sample sized to measure a level, or to detect a change?",
+    "p": "What share do you expect for the key indicator (0 to 1)?",
+    "relmargin": "How precise, as a relative margin of error (0.10 = plus or minus 10 percent of the share)?",
+    "margin": "Or as an absolute margin (0.03 = plus or minus 3 points)?",
+    "change": "If a change: how large a change should be detected (-0.05 = a fall of 5 points)?",
+    "power": "If a change: with what power (0.8 is usual)?",
+    "deff": "How clustered is the sample (design effect; 2 for areas then households, 1 for a list)?",
+    "nonresponse_mult": "How much to inflate for nonresponse (1.1 = 10 percent more)?",
+    "attrition": "What share of the panel is lost each round (0.015 = 1.5 percent)?",
+    "rounds": "How many rounds will the panel run?",
+    "firstloss": "What share is lost between the baseline and the first phone round?",
+    "domains": "For how many domains (regions, groups) is this precision needed?",
+    "minsize": "Below how many households is an area too small to sample alone (0 = no check)?",
+    "maxsize": "Above how many households should an area be listed in segments (0 = no check)?",
+    "n_areas": "How many areas should be selected in total?",
+    "allocation": "How should the areas be spread across strata?",
+    "power_q": "If power allocation: which exponent (0.5 is usual)?",
+    "min_areas": "At least how many areas per stratum (0 = no minimum)?",
+    "max_areas": "At most how many areas per stratum (0 = no maximum)?",
+    "stage1": "How should the areas be drawn?",
+    "sort_vars": "Which Frame columns give the geographic order within strata (spread the sample)?",
+    "reserve_areas": "How many reserve areas per stratum (a number, all, or 0)?",
+    "households_per_area": "How many households per selected area (blank = none; needs a household list or listing on Files)?",
+    "phone_per_psu": "How many households per PSU are called first (blank = no phone subsample; needs a baseline on Files)?",
+    "rdd": "Should phone numbers be generated from operator prefixes (random digit dialing)?",
+    "base_weight": "Where does the base weight come from?",
+    "nonresponse": "How should the weights be adjusted for households not interviewed?",
+    "covariates": "Which baseline variables predict response (for propensity or balancing; i. before a category variable)?",
+    "classes": "Which variables define the weighting classes (for classes)?",
+    "cells": "Which Cells sheet columns define the cells (for post)?",
+    "ngroups": "How many propensity groups (10 = deciles)?",
+    "moments": "Balance means only (1), also variances (2), also skewness (3)?",
+    "trim": "Should extreme weights be trimmed?",
+    "trim_pct": "If winsor: at which percentile?",
+    "trim_cap": "If cap: at which value?",
+    "trim_capmult": "If cap: at how many times the median?",
+    "calibrate": "Should the weights be calibrated to the Totals sheet?",
+    "cal_vars": "Which variables to calibrate on (blank = every variable on Totals)?",
+    "cal_ll": "Lower bound on the calibration ratio (regress), or blank?",
+    "cal_ul": "Upper bound, or blank?",
+    "report_by": "Which variable should the report break the weights down by (blank = none)?",
+    "report_files": "Write the Word method note and the Excel report?",
+}
+LISTS = {
+    "target": "level,change", "allocation": "proportional,equal,neyman,power", "stage1": "ppssys,pps,systematic,srs,grid",
+    "rdd": "yes,no", "base_weight": "baseline,probabilities", "nonresponse": "propensity,probit,classes,ebalance,ebalance_nobase,post,none",
+    "trim": "none,winsor,cap", "calibrate": "none,rake,regress,post", "report_files": "yes,no",
+}
+NUMERIC = {"seed", "p", "relmargin", "margin", "change", "power", "deff", "nonresponse_mult", "attrition", "rounds", "firstloss", "domains",
+           "minsize", "maxsize", "n_areas", "power_q", "min_areas", "max_areas", "households_per_area", "phone_per_psu", "ngroups", "moments",
+           "trim_pct", "trim_cap", "trim_capmult", "cal_ll", "cal_ul"}
+DEFAULTS = {"output_dir": "rtm_outputs", "target": "level", "allocation": "proportional", "stage1": "ppssys", "reserve_areas": "2", "rdd": "no",
+            "base_weight": "baseline", "nonresponse": "propensity", "trim": "none", "calibrate": "none", "report_files": "yes",
+            "minsize": "0", "maxsize": "0", "min_areas": "0", "max_areas": "0", "deff": "2 (command)", "nonresponse_mult": "1.1 (command)",
+            "power": "0.8 (command)", "ngroups": "10 (command)", "moments": "1 (command)", "trim_pct": "98 (command)", "power_q": "0.5 (command)"}
+
 FILES_COLS = ["role", "path", "id", "response", "psu", "strata", "weight", "probabilities", "phone", "area_id", "round", "note"]
 FILES_NOTES = {
     "role": "baseline | round | household_list | listing",
@@ -126,9 +189,46 @@ def write_rows(ws, df, start=2):
 
 def build(out, path_prefix):
     wb = Workbook()
+    # ---- Start here: four questions, then which sheets to fill ----
+    st0 = wb.active
+    st0.title = "Start here"
+    st0.column_dimensions["A"].width = 58
+    st0.column_dimensions["B"].width = 70
+    start = [
+        ("Start here", HEAD, None),
+        ("Answer the four questions, then fill only the sheets they point to. Then in Stata: User > RTM tools > Start here, and click the steps.", MUTED, None),
+        ("", None, None),
+        ("1. Do you have a list of areas (enumeration areas, villages, blocks) with the number of households in each?", SUB, None),
+        ("   Yes", None, "Paste it into the Frame sheet (area_id, stratum_id, size_hh; one row per area) and list the strata on the Strata sheet. On Design, set n_areas, allocation, stage1, reserve_areas."),
+        ("   No, only boundaries and a population map", None, "Build the area frame first with rtmframe grid (User > RTM tools > Frame > Grid frame...), save it, then paste it into Frame with x and y and set stage1 to grid."),
+        ("   No frame at all, phone numbers only", None, "Fill the Prefixes sheet (one row per operator prefix) and set rdd to yes on Design; leave Frame empty."),
+        ("", None, None),
+        ("2. How will the households inside each selected area be chosen?", SUB, None),
+        ("   From a household list you already have", None, "Add a household_list row on the Files sheet (path, id, area_id) and set households_per_area on Design."),
+        ("   From a field listing done after the areas are drawn", None, "Run the sampling once for the areas, list them in the field, then add a listing row on Files and run the sampling again."),
+        ("   Not needed (areas only, or phone numbers)", None, "Leave households_per_area blank."),
+        ("", None, None),
+        ("3. Is there a baseline survey whose households you will call?", SUB, None),
+        ("   Yes", None, "Add a baseline row on Files (path, id, psu, strata, weight, phone) and set phone_per_psu on Design: that many per PSU are called first, the rest are ordered replacements."),
+        ("   No", None, "Leave phone_per_psu blank; the weights then start from the sample's own probabilities (base_weight probabilities)."),
+        ("", None, None),
+        ("4. Are you weighting a round of phone interviews now?", SUB, None),
+        ("   Yes", None, "Add a round row on Files (path, id, response = the 1/0 interviewed column, round number). On Design choose nonresponse (and its covariates, classes or cells), trim and calibrate; fill Totals if you calibrate, Cells if you post-stratify."),
+        ("   Not yet", None, "Skip the weights rows; they can be filled when the first round is in."),
+        ("", None, None),
+        ("Then", SUB, None),
+        ("   In Stata: User > RTM tools > Start here. Step 2 checks this workbook and lists every problem with its sheet, row and column; step 3 draws the sample; step 4 weights a round.", None, None),
+        ("   Each step opens a plain-language summary of what it did and where the files are.", None, None),
+        ("   The example rows are the package's synthetic data, so every step runs as shipped; replace them with your own.", MUTED, None),
+    ]
+    for i, (txt, font, right) in enumerate(start, start=1):
+        c = st0.cell(row=i, column=1, value=txt)
+        if font:
+            c.font = font
+        if right:
+            st0.cell(row=i, column=2, value=right).alignment = Alignment(wrap_text=True, vertical="top")
     # ---- Readme ----
-    w = wb.active
-    w.title = "Readme"
+    w = wb.create_sheet("Readme")
     w.column_dimensions["A"].width = 120
     lines = [
         ("rtmtools input workbook (schema rtm-input-1.0)", HEAD),
@@ -155,18 +255,45 @@ def build(out, path_prefix):
             c.font = font
     # ---- Design ----
     d = wb.create_sheet("Design")
-    header(d, ["key", "value", "note"], required=("key", "value"))
+    header(d, ["key", "value", "question", "note"], required=("key", "value"))
     d.column_dimensions["A"].width = 22
-    d.column_dimensions["B"].width = 36
-    d.column_dimensions["C"].width = 120
+    d.column_dimensions["B"].width = 34
+    d.column_dimensions["C"].width = 80
+    d.column_dimensions["D"].width = 110
     for i, (k, v, note) in enumerate(DESIGN, start=2):
         c = d.cell(row=i, column=1, value=k)
         if k.startswith("#"):
             c.font = SUB
+            d.cell(row=i, column=3, value=k.lstrip("# ")).font = SUB
             continue
         if v != "":
             d.cell(row=i, column=2, value=v)
-        d.cell(row=i, column=3, value=note).font = MUTED
+        d.cell(row=i, column=3, value=QUESTIONS.get(k, ""))
+        dflt = DEFAULTS.get(k)
+        d.cell(row=i, column=4, value=(f"default when blank: {dflt}. " if dflt else "blank = not used. ") + note).font = MUTED
+        if k in LISTS:
+            dv = DataValidation(type="list", formula1=f'"{LISTS[k]}"', allow_blank=True, showDropDown=False)
+            dv.error = f"Choose one of: {LISTS[k].replace(',', ', ')} (or leave blank for the default)"
+            dv.errorTitle = "Not an allowed value"
+            dv.prompt = QUESTIONS.get(k, "")
+            dv.promptTitle = k
+            d.add_data_validation(dv)
+            dv.add(d.cell(row=i, column=2))
+        elif k in NUMERIC:
+            dv = DataValidation(type="decimal", operator="greaterThanOrEqual", formula1="-1000000000", allow_blank=True)
+            dv.error = "This row needs a number (or blank for the default)"
+            dv.errorTitle = "Not a number"
+            dv.prompt = QUESTIONS.get(k, "")
+            dv.promptTitle = k
+            d.add_data_validation(dv)
+            dv.add(d.cell(row=i, column=2))
+        elif k == "reserve_areas":
+            dv = DataValidation(type="custom", formula1=f'OR(ISNUMBER(B{i}),B{i}="all")', allow_blank=True)
+            dv.error = "A whole number, all, or 0"
+            dv.errorTitle = "Not allowed"
+            d.add_data_validation(dv)
+            dv.add(d.cell(row=i, column=2))
+    d.freeze_panes = "B2"
     # ---- Strata (from the synthetic frame) ----
     fr = pd.read_stata(os.path.join(DATA, "rtm_frame.dta"), convert_categoricals=False)
     frl = pd.read_stata(os.path.join(DATA, "rtm_frame.dta"))
@@ -190,6 +317,13 @@ def build(out, path_prefix):
     fdf = fdf[["area_id", "stratum_id", "size_hh", "size_persons", "region", "urban", "network", "x", "y", "exclude"]]
     header(f, list(fdf.columns), required=("area_id", "stratum_id", "size_hh"))
     write_rows(f, fdf)
+    dv = DataValidation(type="list", formula1='"0,1"', allow_blank=True)
+    dv.error = "exclude is 0, 1 or blank"
+    f.add_data_validation(dv)
+    dv.add("J2:J5000")
+    # a repeated area_id or a missing size is shaded (a display rule, nothing computed for the survey)
+    f.conditional_formatting.add("A2:A5000", FormulaRule(formula=["AND(A2<>\"\",COUNTIF($A$2:$A$5000,A2)>1)"], fill=PatternFill("solid", fgColor="F8D7DA")))
+    f.conditional_formatting.add("C2:C5000", FormulaRule(formula=["AND(A2<>\"\",OR(C2=\"\",C2<=0))"], fill=PatternFill("solid", fgColor="F8D7DA")))
     # ---- Totals ----
     t = wb.create_sheet("Totals")
     tdf = pd.read_stata(os.path.join(DATA, "rtm_totals_long.dta"), convert_categoricals=False)
@@ -212,6 +346,12 @@ def build(out, path_prefix):
     header(fl, FILES_COLS, required=("role", "path"))
     fl.column_dimensions["B"].width = 34
     fl.column_dimensions["L"].width = 60
+    dv = DataValidation(type="list", formula1='"baseline,round,household_list,listing"', allow_blank=True)
+    dv.error = "role is baseline, round, household_list or listing"
+    dv.prompt = "baseline: the household file with weights; round: one file per phone round; household_list or listing: for the second stage"
+    fl.add_data_validation(dv)
+    dv.add("A2:A200")
+    fl.conditional_formatting.add("B2:B200", FormulaRule(formula=["AND(A2<>\"\",B2=\"\")"], fill=PatternFill("solid", fgColor="F8D7DA")))
     rows = [
         {"role": "baseline", "path": path_prefix + "rtm_baseline.dta", "id": "hhid", "psu": "psu", "strata": "stratum", "weight": "w_base",
          "probabilities": "pi_ea pi_hh", "phone": "phone", "note": "the baseline sample, one row per household"},

@@ -36,6 +36,9 @@ F rtmtools.ado
 F rtminput.ado
 F rtminput.dlg
 F rtminput.sthlp
+F rtmtools_start.ado
+F rtmtools_start.sthlp
+F _rtm_osopen.ado
 F rtm_inputs.xlsx
 F rtmtools_setup.ado
 F rtmtools_setup.sthlp

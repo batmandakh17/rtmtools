@@ -2,7 +2,7 @@
 
 Stata tools, with dialog boxes under **User > RTM tools**, for the statistical design work
 around a real-time monitoring phone panel, with a display-only Excel workbook and dashboard, and
-a portable do-file package another program can adapt. Version 0.6.0 (25 October 2026): the four
+a portable do-file package another program can adapt. Version 0.6.1 (25 October 2026): the four
 workflows (weights, sampling, frames, listing support) in their four forms, without R, and one
 input workbook (`rtminput`) that a program fills in to run the sampling and the weighting from it.
 
@@ -100,6 +100,15 @@ naming the export file behind it. "Open an export folder" reads the runs of anot
 example the portable do-files' runs or a colleague's. Nothing is loaded from the network; the
 exports carry identifiers only, never names or phone numbers. `rtmtools_dashboard, off` stops the
 export for the session.
+
+## Start here, without knowing Stata
+
+`rtmtools_start` (User > RTM tools > Start here) opens a page of numbered steps that are links:
+write the workbook, check it, draw the sample, weight a round, open the results. Clicking a step
+runs it; nothing is typed. Every step writes a plain-language summary page (what was done, by which
+method and source, the numbers, the files) and opens it. The workbook's Start-here sheet asks four
+questions and says which sheets to fill; the Design sheet's values are dropdowns with a plain
+question and the source of each default beside them.
 
 ## Fill in one workbook instead of many dialogs
 
@@ -200,7 +209,7 @@ The dashboard maps the selected cells and the boundaries from the exported coord
 
 ## Status (25 October 2026)
 
-Version 0.6.0 covers the four workflows (weights, sampling, frames, listing) in their four forms, and the input workbook that drives them,
+Version 0.6.1 covers the four workflows (weights, sampling, frames, listing) in their four forms, and the input workbook that drives them,
 (Stata command and dialog, portable do-file, Excel display sheet, dashboard tile) on the shared
 export schema `rtm-export-1.0`, with no R anywhere. All test files pass on Stata 18. See `VALIDATION.md` (engine
 correctness, display fidelity, the portability test, edge cases, privacy), `USABILITY.md` (the

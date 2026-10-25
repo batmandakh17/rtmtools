@@ -9,7 +9,7 @@
 *! is on the Design sheet and in those commands' help files.
 program define rtminput, rclass
     version 16
-    syntax [using/] [, CHECK SAMPling WEIGHTS ROUND(integer 0) OUTdir(string) TEMPlate REPLACE NOFiles]
+    syntax [using/] [, CHECK SAMPling WEIGHTS ROUND(integer 0) OUTdir(string) TEMPlate REPLACE NOFiles NOSUMmary]
     if "`template'" != "" {
         _rtminput_template, `replace'
         exit
@@ -51,6 +51,8 @@ program define rtminput, rclass
     }
     _rtminput_dropframes
     capture file close _rtmin_fh
+    capture frame drop _rtmin_summary
+    frame create _rtmin_summary str40 section strL text
     * ---- read, validate ----
     _rtminput_read, using("`using'") isdir(`isdir')
     local present "`r(present)'"
@@ -87,7 +89,9 @@ program define rtminput, rclass
             if _rc local checked ""
         }
         if "`checked'" != "" di as text `"Checks written to {browse "`checked'"} (the original is not changed)"'
+        _rtminput_summary, mode(check) outdir("`indir'") using("`using'") round(0) n_errors(`n_errors') n_warnings(`n_warnings') checked("`checked'") `nosummary'
         _rtminput_export_check, using("`using'") n_errors(`n_errors') n_warnings(`n_warnings') present("`present'")
+        return local summary "$RTMTOOLS_LAST_SUMMARY"
         return scalar n_errors = `n_errors'
         return scalar n_warnings = `n_warnings'
         return local checked `"`checked'"'
@@ -118,6 +122,8 @@ program define rtminput, rclass
         exit `rc'
     }
     di as text _n `"Outputs in {browse "`outdir'"}; the commands run are in `logfile'"'
+    _rtminput_summary, mode(`mode') outdir("`outdir'") using("`using'") round(`round') n_errors(0) n_warnings(`n_warnings') logfile("`logfile'") `nosummary'
+    return local summary "$RTMTOOLS_LAST_SUMMARY"
     return local outdir "`outdir'"
     return local commands "`logfile'"
     return scalar n_warnings = `n_warnings'
@@ -148,7 +154,7 @@ program define _rtminput_saveframe
 end
 
 program define _rtminput_dropframes
-    foreach f in design strata frame totals cells prefixes files checks {
+    foreach f in design strata frame totals cells prefixes files checks summary {
         capture frame drop _rtmin_`f'
     }
     capture macro drop RTMIN_*
@@ -632,7 +638,130 @@ end
 program define _rtminput_do
     di as text `"{bf:.} `macval(0)'"'
     capture file write _rtmin_fh `"`macval(0)'"' _n
-    `macval(0)'
+    capture noisily `macval(0)'
+    local rc = _rc
+    if `rc' {
+        di as err _n "This step stopped (Stata error `rc'). In plain words:"
+        if `rc' == 111 di as err "  a variable named on the Files or Design sheet (id, response, psu, strata, weight, phone, area_id, covariates, classes, cells, cal_vars, sort_vars) is not in the file it is used with; check the spelling on that sheet"
+        else if inlist(`rc', 601, 603) di as err "  a file named on the Files sheet was not found or could not be read; check its path (relative to the workbook's folder)"
+        else if `rc' == 602 di as err "  an output file exists and could not be replaced; close it if it is open in another program"
+        else if `rc' == 459 di as err "  the data do not fit this step: repeated identifiers, a stratum with no units, or more units asked for than exist; the message above says which"
+        else if `rc' == 198 di as err "  a setting on the Design sheet produced an option this command does not accept; the message above names it (help rtminput lists the allowed values)"
+        else if inlist(`rc', 2000, 2001) di as err "  no observations were left for this step: check the response indicator and the phone column on the Files sheet, and that the round file's ids match the baseline's"
+        else if `rc' == 430 di as err "  the calibration or balancing did not converge: fewer calibration variables or covariates, or bounds, usually fix it"
+        else if `rc' == 1 di as err "  the step was interrupted"
+        else di as err "  see the message above; the commands that ran before this one are in the commands do-file of the output folder"
+        exit `rc'
+    }
+end
+
+* ---- one line of the plain-language summary ----
+program define _rtminput_say
+    args section text
+    frame post _rtmin_summary ("`section'") (`"`macval(text)'"')
+end
+
+* ---- the summary page: what was done, in plain words, with the numbers and the files ----
+program define _rtminput_summary
+    syntax, mode(string) outdir(string) using(string) round(integer) n_errors(integer) n_warnings(integer) [checked(string) logfile(string) NOSUMmary]
+    local stamp : di %tcCCYYNNDD-HHMMSS clock("`c(current_date)' `c(current_time)'", "DMY hms")
+    local tag = cond(`round' > 0, "`mode'_round`round'", "`mode'")
+    local f "`outdir'/rtm_summary_`tag'_`stamp'.html"
+    local when "`c(current_date)' `c(current_time)'"
+    local title = cond("`mode'" == "check", "Check of the input workbook", cond("`mode'" == "sampling", "Sampling run", "Weights of round `round'"))
+    local proj "$RTMIN_project"
+    tempname fh
+    capture file close `fh'
+    file open `fh' using "`f'", write text replace
+    file write `fh' "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>" _n
+    file write `fh' "<title>`title'</title>" _n
+    file write `fh' "<style>:root{--page:#f9f9f7;--ink:#0b0b0b;--muted:#8f8d86;--line:#e2e0da;--accent:#1c5cab;--good:#0ca30c;--crit:#d03b3b;--box:#eef4fc}" _n
+    file write `fh' "@media (prefers-color-scheme: dark){:root{--page:#0d0d0d;--ink:#ffffff;--muted:#898781;--line:#34332f;--accent:#86b6ef;--box:#16202c}}" _n
+    file write `fh' "body{margin:0;background:var(--page);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16px;line-height:1.55}" _n
+    file write `fh' "main{max-width:860px;margin:0 auto;padding:24px 16px 48px}h1{font-size:26px;margin:0 0 4px}h2{font-size:18px;margin:28px 0 8px;border-bottom:1px solid var(--line);padding-bottom:4px}" _n
+    file write `fh' ".meta{color:var(--muted);margin-bottom:18px}.ok{color:var(--good);font-weight:600}.bad{color:var(--crit);font-weight:600}" _n
+    file write `fh' "table{border-collapse:collapse;width:100%;font-size:14.5px;margin:8px 0}th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:600}" _n
+    file write `fh' "p{margin:6px 0}code{font-family:ui-monospace,Menlo,monospace;font-size:13.5px;background:var(--box);padding:1px 5px;border-radius:4px}.box{background:var(--box);border-radius:8px;padding:12px 14px;margin:10px 0}</style></head><body><main>" _n
+    file write `fh' "<h1>`title'</h1><div class='meta'>" `"`=cond("`proj'" != "", "`proj' &middot; ", "")'"' "`when' &middot; from <code>`using'</code></div>" _n
+    * ---- the verdict line ----
+    if "`mode'" == "check" {
+        if `n_errors' == 0 file write `fh' "<p class='ok'>The workbook is ready: every sheet checked, 0 errors" `"`=cond(`n_warnings' > 0, ", `n_warnings' warning(s) to read below", "")'"' ".</p>" _n
+        else file write `fh' "<p class='bad'>`n_errors' error(s) to fix before a run" `"`=cond(`n_warnings' > 0, ", and `n_warnings' warning(s)", "")'"' ". Each line below names the sheet, the Excel row and the column.</p>" _n
+        if "`checked'" != "" file write `fh' "<p>The same list is on the <b>Checks</b> sheet of <code>`checked'</code>. Fix the cells in your own workbook and run the check again.</p>" _n
+    }
+    else {
+        file write `fh' "<p class='ok'>The run completed. What was done, in order:</p>" _n
+    }
+    * ---- the steps said by the runners ----
+    frame _rtmin_summary {
+        quietly count
+        local N = r(N)
+        local last ""
+        forvalues i = 1/`N' {
+            local sec = section[`i']
+            local txt = text[`i']
+            if "`sec'" != "`last'" {
+                if "`last'" != "" & "`last'" != "table" file write `fh' "</div>" _n
+                if "`sec'" == "table" {
+                    file write `fh' `"`macval(txt)'"' _n
+                }
+                else {
+                    file write `fh' "<h2>`sec'</h2><div class='box'>" _n
+                    file write `fh' "<p>" `"`macval(txt)'"' "</p>" _n
+                }
+                local last "`sec'"
+            }
+            else {
+                if "`sec'" == "table" file write `fh' `"`macval(txt)'"' _n
+                else file write `fh' "<p>" `"`macval(txt)'"' "</p>" _n
+            }
+        }
+        if "`last'" != "" & "`last'" != "table" file write `fh' "</div>" _n
+    }
+    * ---- the problems (check) ----
+    if "`mode'" == "check" | `n_warnings' > 0 {
+        frame _rtmin_checks {
+            quietly count if severity != "ok"
+            if r(N) > 0 {
+                file write `fh' "<h2>Problems found</h2><table><tr><th>Sheet</th><th>Row</th><th>Column</th><th>Severity</th><th>What is wrong</th></tr>" _n
+                quietly count
+                forvalues i = 1/`r(N)' {
+                    if severity[`i'] == "ok" continue
+                    local rw = cond(missing(row[`i']), "", string(row[`i']))
+                    local pr = subinstr(subinstr(problem[`i'], "&", "&amp;", .), "<", "&lt;", .)
+                    local sev = cond(severity[`i'] == "error", "bad", "")
+                    file write `fh' "<tr><td>" (sheet[`i']) "</td><td>`rw'</td><td>" (column[`i']) "</td><td class='`sev''>" (severity[`i']) "</td><td>`pr'</td></tr>" _n
+                }
+                file write `fh' "</table>" _n
+            }
+        }
+    }
+    * ---- files and how to repeat ----
+    if "`mode'" != "check" {
+        file write `fh' "<h2>Files written</h2><table><tr><th>File</th><th>What it holds</th></tr>" _n
+        foreach pair in "rtm_sample_areas.dta|the area frame with the selection, probabilities, weights, reserve ranks" ///
+                        "rtm_sample_households.dta|the selected households with their design weights" ///
+                        "rtm_sample_phone.dta|the baseline with the phone sample marked and every other household's replacement rank" ///
+                        "rtm_rdd_numbers.dta|the random digit dialing numbers (kept here only)" ///
+                        "rtm_weights_round`round'.dta|the phone sample with the weights w0 (base), w1 (adjusted), w1t (trimmed), w2 (calibrated)" ///
+                        "rtm_weights_round`round'.docx|the weighting method note (Word)" ///
+                        "rtm_weights_round`round'.xlsx|the weighting report (Excel)" {
+            gettoken fn desc : pair, parse("|")
+            local desc = substr("`desc'", 2, .)
+            if "`mode'" == "sampling" & strpos("`fn'", "rtm_weights") continue
+            if "`mode'" == "weights" & !strpos("`fn'", "rtm_weights") continue
+            capture confirm file "`outdir'/`fn'"
+            if !_rc file write `fh' "<tr><td><code>`outdir'/`fn'</code></td><td>`desc'</td></tr>" _n
+        }
+        file write `fh' "</table>" _n
+        file write `fh' "<h2>To repeat or adapt this run</h2><p>Every command that ran is in <code>`logfile'</code>, one line per step with a comment above it. Running that file in Stata repeats the run exactly (the seed is in it); each command's own tables are in the export folder the dashboard shows.</p>" _n
+    }
+    file write `fh' "<p class='meta'>Written by rtmtools (rtminput). Every number comes from the package's documented commands; the method choices are the Design sheet's. Nothing was sent anywhere.</p></main></body></html>" _n
+    file close `fh'
+    global RTMTOOLS_LAST_SUMMARY "`f'"
+    global RTMTOOLS_LAST_OUTDIR "`outdir'"
+    di as text `"Summary: {browse "`f'"}"'
+    if "`nosummary'" == "" _rtm_osopen "`f'"
 end
 
 program define _rtminput_note
@@ -673,6 +802,7 @@ program define _rtminput_sampling
         }
         _rtminput_note step 1: sample size per domain (rtmsample size)
         _rtminput_do rtmsample size, `o'
+        _rtminput_say "Sample size" `"For a `=cond("$RTMIN_target" == "change", "change of $RTMIN_change", "proportion of about $RTMIN_p")' with the precision asked, each domain needs <b>`: di %9.0fc r(n_domain)'</b> households and the `=r(domains)' domains together <b>`: di %9.0fc r(n_total)'</b>, after the design effect, nonresponse and the attrition reserve for `=r(rounds)' rounds (UN 2008 section 3.3; HFPS Vol. 2)."'
     }
     * ---- 2. the frame: checked, allocated, drawn ----
     _rtminput_note step 2: the area frame from the Frame sheet, checked (rtmframe list)
@@ -692,6 +822,7 @@ program define _rtminput_sampling
     capture confirm numeric variable exclude
     if !_rc local exo "exclude(exclude)"
     _rtminput_do rtmframe list, id(area_id) size(size_hh) strata(stratum_id) minsize($RTMIN_minsize) maxsize($RTMIN_maxsize) `exo'
+    _rtminput_say "Area frame" `"The Frame sheet has <b>`: di %9.0fc r(N)'</b> areas in <b>`=r(H)'</b> strata; <b>`: di %9.0fc r(N_ok)'</b> can be sampled. Flagged: `=r(n_dup)' repeated ids, `=r(n_badsize)' with a missing or zero size, `=r(n_small)' below $RTMIN_minsize households, `=r(n_large)' above $RTMIN_maxsize (large areas are listed in segments), `=r(n_excluded)' excluded."'
     capture confirm variable frame_ok
     local okif = cond(_rc, "", "if frame_ok == 1")
     _rtminput_note step 3: allocation of $RTMIN_n_areas areas across strata ($RTMIN_allocation)
@@ -700,6 +831,8 @@ program define _rtminput_sampling
     if "$RTMIN_min_areas" != "0" local ao "`ao' min($RTMIN_min_areas)"
     if "$RTMIN_max_areas" != "0" local ao "`ao' max($RTMIN_max_areas)"
     _rtminput_do rtmsample allocate `okif', strata(stratum_id) n($RTMIN_n_areas) size(size_hh) method($RTMIN_allocation) `ao' generate(n_area)
+    _rtminput_say "Allocation" `"<b>$RTMIN_n_areas</b> areas were allocated across the strata by <b>$RTMIN_allocation</b> allocation`=cond("$RTMIN_min_areas" != "0" | "$RTMIN_max_areas" != "0", " (at least $RTMIN_min_areas and at most $RTMIN_max_areas per stratum)", "")'; `=r(n_bounded)' strata were held at a bound."'
+    _rtminput_alloctable
     _rtminput_note step 4: first stage ($RTMIN_stage1), $RTMIN_reserve_areas reserve(s) per stratum
     local sv = cond("$RTMIN_sort_vars" != "", "$RTMIN_sort_vars", "stratum_id area_id")
     local ro = cond("$RTMIN_reserve_areas" != "0", "reserve($RTMIN_reserve_areas)", "")
@@ -710,6 +843,7 @@ program define _rtminput_sampling
         local pp = cond(inlist("$RTMIN_stage1", "pps", "ppssys"), "pps(size_hh)", "")
         _rtminput_do rtmsample draw `okif', n(n_area) strata(stratum_id) `pp' method($RTMIN_stage1) sort(`sv') `ro' `seed' id(area_id) generate(area)
     }
+    _rtminput_say "First stage" `"<b>`: di %9.0fc r(n_selected)'</b> areas were selected by <b>$RTMIN_stage1</b>`=cond(inlist("$RTMIN_stage1", "pps", "ppssys"), " (probability proportional to households)", "")'`=cond("$RTMIN_sort_vars" != "", ", the frame sorted by $RTMIN_sort_vars within strata", "")', with <b>`: di %9.0fc r(n_reserve)'</b> reserve areas ranked for replacement`=cond(r(n_certainty) > 0 & r(n_certainty) < ., " and `=r(n_certainty)' taken with certainty", "")'. Seed `=r(seed)': the same seed repeats the draw."'
     _rtminput_do save "`outdir'/rtm_sample_areas.dta", replace
     * ---- 5. second stage ----
     if "$RTMIN_households_per_area" != "" {
@@ -725,6 +859,7 @@ program define _rtminput_sampling
             _rtminput_do rtmsample draw, n($RTMIN_households_per_area) strata(`ha') `seed' id($RTMIN_F_hl_id) generate(hh)
             _rtminput_do keep if hh_sel == 1
             _rtminput_do rtmweight base, probability(area_pi hh_pi) generate(w_design)
+            _rtminput_say "Households" `"<b>`: di %9.0fc r(N)'</b> households were selected, $RTMIN_households_per_area in each selected area, from the household list. Their design weights (1 / the product of the two stage probabilities) add to <b>`: di %12.0fc r(sum)'</b> households, which should be close to the frame's total."'
             _rtminput_do save "`outdir'/rtm_sample_households.dta", replace
         }
         else {
@@ -739,6 +874,7 @@ program define _rtminput_sampling
             _rtminput_do rtmsample draw, n($RTMIN_households_per_area) strata(area_id) `seed' generate(hh)
             _rtminput_do keep if hh_sel == 1
             _rtminput_do rtmweight base, probability(area_pi segment_prob hh_pi) generate(w_design)
+            _rtminput_say "Households" `"<b>`: di %9.0fc r(N)'</b> households were selected, $RTMIN_households_per_area in each selected area, from the completed listing (segments counted in the probability). Their design weights add to <b>`: di %12.0fc r(sum)'</b> households."'
             _rtminput_do save "`outdir'/rtm_sample_households.dta", replace
         }
     }
@@ -749,9 +885,11 @@ program define _rtminput_sampling
         _rtminput_do use "`r(dta)'", clear
         local io = cond("$RTMIN_F_bl_id" != "", "id($RTMIN_F_bl_id)", "")
         _rtminput_do rtmsample draw, n($RTMIN_phone_per_psu) strata($RTMIN_F_bl_psu) reserve(all) `seed' `io' generate(ph)
+        _rtminput_say "Phone sample" `"<b>`: di %9.0fc r(n_selected)'</b> baseline households were drawn to be called first, $RTMIN_phone_per_psu per PSU; the other <b>`: di %9.0fc r(n_reserve)'</b> are ranked as replacements within their PSU (ph_reserve)."'
         if "$RTMIN_F_bl_weight" != "" {
             local bo = cond("$RTMIN_F_bl_strata" != "", "by($RTMIN_F_bl_strata)", "")
             _rtminput_do rtmweight base, baseweight($RTMIN_F_bl_weight) subsample(ph_sel) `bo' generate(w_phone)
+            _rtminput_say "Phone sample" `"Their weights carry the baseline's total of <b>`: di %12.0fc r(sum_baseline)'</b> (the baseline weight redistributed to the called households within strata, HFPS Vol. 2 p. 21)."'
         }
         _rtminput_do save "`outdir'/rtm_sample_phone.dta", replace
     }
@@ -769,7 +907,32 @@ program define _rtminput_sampling
         }
         _rtminput_note step 7: random digit dialing numbers from the Prefixes sheet (kept in rtm_rdd_numbers.dta; never exported)
         _rtminput_do rtmsample rdd, prefixes(`pl') n(`nl') digits(`dg') `seed' saving("`outdir'/rtm_rdd_numbers.dta") replace
+        _rtminput_say "Random digit dialing" `"<b>`: di %9.0fc r(n_numbers)'</b> numbers were generated from `=r(n_prefixes)' prefixes with `=r(digits)' random digits, none twice; they are in the output folder only and never in the export."'
     }
+end
+
+* ---- the allocation by stratum, as an HTML table in the summary ----
+program define _rtminput_alloctable
+    capture confirm variable stratum_id n_area size_hh
+    if _rc exit
+    capture confirm variable stratum_label
+    local haslab = !_rc
+    capture confirm variable frame_ok
+    local okc = cond(_rc, "1", "frame_ok == 1")
+    tempname fr
+    frame put stratum_id `=cond(`haslab', "stratum_label", "")' size_hh n_area if `okc', into(`fr')
+    frame `fr' {
+        collapse (count) n_units = size_hh (sum) size_sum = size_hh (first) n_area `=cond(`haslab', "(first) stratum_label", "")', by(stratum_id)
+        local h = "<table><tr><th>Stratum</th>" + cond(`haslab', "<th>Label</th>", "") + "<th>Areas in frame</th><th>Households</th><th>Areas allocated</th></tr>"
+        _rtminput_say "table" `"`h'"'
+        quietly count
+        forvalues i = 1/`r(N)' {
+            local lab = cond(`haslab', "<td>" + stratum_label[`i'] + "</td>", "")
+            _rtminput_say "table" `"<tr><td>`=stratum_id[`i']'</td>`lab'<td>`: di %9.0fc n_units[`i']'</td><td>`: di %12.0fc size_sum[`i']'</td><td>`=n_area[`i']'</td></tr>"'
+        }
+        _rtminput_say "table" "</table>"
+    }
+    frame drop `fr'
 end
 
 * ================================ weights ================================
@@ -793,6 +956,7 @@ program define _rtminput_weights
     }
     _rtminput_do use "`bl'", clear
     _rtminput_do merge 1:1 `id' using "`rd'", keepusing(`resp') keep(master match) nogenerate
+    _rtminput_say "Data" `"The baseline (<b>`: di %9.0fc _N'</b> households) was merged with the round `round' file on <code>`id'</code>; a household absent from the round file counts as not interviewed."'
     _rtminput_do quietly replace `resp' = 0 if missing(`resp')
     * ---- base weights ----
     local so = cond("`phone'" != "", "subsample(`phone')", "")
@@ -805,12 +969,14 @@ program define _rtminput_weights
         _rtminput_note step 2: base weights, 1 / product of the stage probabilities (rtmweight base)
         _rtminput_do rtmweight base, probability($RTMIN_F_bl_probabilities) `so' `bo' generate(w0)
     }
+    _rtminput_say "Base weights" `"`=cond("$RTMIN_base_weight" == "baseline", "The baseline weight was redistributed to the phone sample within strata", "The base weight is 1 / the product of the stage probabilities")' (w0): <b>`: di %9.0fc r(N)'</b> households, weights adding to <b>`: di %12.0fc r(sum)'</b>."'
     if "`phone'" != "" _rtminput_do keep if `phone' == 1
     * ---- nonresponse ----
     local m "$RTMIN_nonresponse"
     if "`m'" == "none" {
         _rtminput_note step 3: no nonresponse adjustment (Design: nonresponse none)
         _rtminput_do generate double w1 = w0
+        _rtminput_say "Nonresponse adjustment" "No adjustment was asked (Design: nonresponse none): w1 equals w0, and the households not interviewed are not compensated for."
     }
     else {
         local mm = cond("`m'" == "propensity", "logit", "`m'")
@@ -830,11 +996,14 @@ program define _rtminput_weights
         }
         _rtminput_note step 3: nonresponse and attrition adjustment, method `mm' (rtmweight nonresponse)
         _rtminput_do rtmweight nonresponse `resp', weight(w0) method(`mm') `no' generate(w1)
+        local mtxt = cond("`mm'" == "logit", "a logit response propensity in `=cond("$RTMIN_ngroups" != "", "$RTMIN_ngroups", "10")' groups (the guidelines' method, HFPS Vol. 2 Annex A2.3.1)", cond("`mm'" == "probit", "a probit response propensity in groups", cond("`mm'" == "classes", "weighting classes $RTMIN_classes (UN 2008 section 6.5)", cond("`mm'" == "ebalance", "entropy balancing of the respondents to the sample's weighted means of $RTMIN_covariates (the L2 programs' practice; equal to raking)", cond("`mm'" == "ebalance_nobase", "entropy balancing without base weights (the L2PHL 2026 form)", "post-stratification of the respondents to the Cells sheet (the L2PHL form)")))))
+        _rtminput_say "Nonresponse adjustment" `"Of <b>`: di %9.0fc r(N_sample)'</b> households in the phone sample, <b>`: di %9.0fc r(N_resp)'</b> were interviewed (response rate `: di %4.1f 100 * r(rr_unweighted)' percent unweighted, `: di %4.1f 100 * r(rr_weighted)' weighted). Their weights were raised by `mtxt' so that they stand for the whole sample (w1): adjustment factors from `: di %5.2f r(factor_min)' to `: di %5.2f r(factor_max)', median `: di %5.2f r(factor_p50)'; Kish's design effect from the weights `: di %5.3f r(kish)'."'
     }
     * ---- trimming ----
     if "$RTMIN_trim" == "none" {
         _rtminput_note step 4: no trimming (Design: trim none)
         _rtminput_do generate double w1t = w1
+        _rtminput_say "Trimming" "No trimming was asked (Design: trim none): w1t equals w1."
     }
     else {
         local to ""
@@ -845,11 +1014,13 @@ program define _rtminput_weights
         }
         _rtminput_note step 4: trimming, rule $RTMIN_trim (rtmweight trim)
         _rtminput_do rtmweight trim w1 if `resp' == 1, generate(w1t) rule($RTMIN_trim) `to'
+        _rtminput_say "Trimming" `"The largest weights were `=cond("$RTMIN_trim" == "winsor", "winsorised at the `=cond("$RTMIN_trim_pct" != "", "$RTMIN_trim_pct", "98")'th percentile (HFPS Vol. 2 p. 11)", "capped (UN 2008 section 6.8)")' and the rest rescaled (w1t): <b>`=r(n_trimmed_high)'</b> weights lowered`=cond(r(n_trimmed_low) > 0, ", `=r(n_trimmed_low)' raised", "")'; Kish's design effect `: di %5.3f r(kish_before)' before, `: di %5.3f r(kish_after)' after."'
     }
     * ---- calibration ----
     if "$RTMIN_calibrate" == "none" {
         _rtminput_note step 5: no calibration (Design: calibrate none)
         _rtminput_do generate double w2 = w1t
+        _rtminput_say "Calibration" "No calibration was asked (Design: calibrate none): w2 equals w1t."
     }
     else {
         _rtminput_saveframe, frame(_rtmin_totals) file("`outdir'/rtm_input_totals.dta")
@@ -866,11 +1037,13 @@ program define _rtminput_weights
         if "$RTMIN_cal_ul" != "" local co "`co' ul($RTMIN_cal_ul)"
         _rtminput_note step 5: calibration to the Totals sheet, method $RTMIN_calibrate (rtmweight calibrate)
         _rtminput_do rtmweight calibrate `iv' [pw=w1t] if `resp' == 1, generate(w2) totalsfile("`outdir'/rtm_input_totals.dta") method($RTMIN_calibrate) `co'
+        _rtminput_say "Calibration" `"The weights were calibrated by <b>$RTMIN_calibrate</b> to the Totals sheet (`cv') so that they add to the population totals (w2; Deville and Sarndal 1992): largest relative gap to a total after calibration `: di %8.6f r(max_rel_diff)', weights adding to <b>`: di %12.0fc r(sum_after)'</b>; the calibration factors range from `: di %5.2f r(g_min)' to `: di %5.2f r(g_max)'; Kish's design effect `: di %5.3f r(kish_after)'."'
     }
     * ---- report and save ----
     local ro = cond("$RTMIN_report_by" != "", "by($RTMIN_report_by)", "")
     if "$RTMIN_report_files" == "yes" local ro `"`ro' docx("`outdir'/rtm_weights_round`round'.docx") excel("`outdir'/rtm_weights_round`round'.xlsx")"'
     _rtminput_note step 6: the weighting report (rtmweight report)
     _rtminput_do rtmweight report w0 w1 w1t w2 if `resp' == 1, notes `ro'
+    _rtminput_say "Report" `"The weighting report puts the four weights side by side`=cond("$RTMIN_report_by" != "", " and by $RTMIN_report_by", "")'`=cond("$RTMIN_report_files" == "yes", "; the Word method note and the Excel report are in the output folder", "")'. The weight to use for this round's estimates is <b>w2</b>`=cond("$RTMIN_calibrate" == "none", " (equal to w1t: no calibration was asked)", "")'."'
     _rtminput_do save "`outdir'/rtm_weights_round`round'.dta", replace
 end
