@@ -2,8 +2,9 @@
 
 Stata tools, with dialog boxes under **User > RTM tools**, for the statistical design work
 around a real-time monitoring phone panel, with a display-only Excel workbook and dashboard, and
-a portable do-file package another program can adapt. Version 0.5.0 (25 October 2026): the four
-workflows (weights, sampling, frames, listing support) in their four forms, without R.
+a portable do-file package another program can adapt. Version 0.6.0 (25 October 2026): the four
+workflows (weights, sampling, frames, listing support) in their four forms, without R, and one
+input workbook (`rtminput`) that a program fills in to run the sampling and the weighting from it.
 
 Stata is the only computational engine. Every sampling and weighting statistic is computed by a
 Stata command of the package or by the portable do-file of the same workflow; both write the same
@@ -100,6 +101,37 @@ example the portable do-files' runs or a colleague's. Nothing is loaded from the
 exports carry identifiers only, never names or phone numbers. `rtmtools_dashboard, off` stops the
 export for the session.
 
+## Fill in one workbook instead of many dialogs
+
+A program that sets up its sampling and weighting from scratch can fill one input workbook and let
+the package run the commands. `rtminput, template` writes `rtm_inputs.xlsx` into the current folder,
+filled with the synthetic example; its sheets are:
+
+| Sheet | One row per | Columns |
+|---|---|---|
+| Design | setting | `key`, `value`, `note`: the method choices (allocation, first stage, reserves, nonresponse method, trimming, calibration, ...) with the allowed values and the source of each default in the note |
+| Strata | stratum | `stratum_id`, `label`, `population_hh`, `population_persons` |
+| Frame | area | `area_id`, `stratum_id`, `size_hh`; optional `size_persons`, `x`, `y`, `exclude`, sorting columns |
+| Totals | category | `variable`, `level`, `total` (the calibration layout of `rtmweight calibrate`) |
+| Cells | census cell | the cell variables, then `total` (for cell post-stratification) |
+| Prefixes | operator prefix | `prefix`, `n_numbers`, `digits` (random digit dialing) |
+| Files | data file | `role` (baseline, round, household_list, listing), `path`, and the names of its variables (`id`, `response`, `psu`, `strata`, `weight`, `probabilities`, `phone`, `area_id`, `round`) |
+
+The household-level data stay in their files; the workbook only points to them. Then:
+
+```
+. rtminput using rtm_inputs.xlsx, check              // every sheet validated; the problems go into a Checks sheet of a copy
+. rtminput using rtm_inputs.xlsx, sampling           // size, frame check, allocation, draw, second stage, phone subsample
+. rtminput using rtm_inputs.xlsx, weights round(1)   // base, nonresponse, trim, calibrate, report for that round
+```
+
+Each run stops if the inputs have errors, otherwise calls the package's commands with the workbook's
+choices, prints every command and writes them to a do-file in the output folder (`rtm_outputs/` by
+default), so the run can be read, repeated and adapted. A folder of CSV files with the sheet names
+(`design.csv`, `frame.csv`, ...) is accepted in place of the workbook. The dialog is User > RTM tools
+> Run from the input workbook...; `help rtminput` lists every Design key. `rtminput` adds no
+statistical step: every number comes from `rtmframe`, `rtmsample`, `rtmlist` and `rtmweight`.
+
 ## The portable do-files (for another program)
 
 `portable_do_files/` holds the four workflows as plain Stata do-files written to be read top to
@@ -168,7 +200,7 @@ The dashboard maps the selected cells and the boundaries from the exported coord
 
 ## Status (25 October 2026)
 
-Version 0.5.0 covers the four workflows (weights, sampling, frames, listing) in their four forms
+Version 0.6.0 covers the four workflows (weights, sampling, frames, listing) in their four forms, and the input workbook that drives them,
 (Stata command and dialog, portable do-file, Excel display sheet, dashboard tile) on the shared
 export schema `rtm-export-1.0`, with no R anywhere. All test files pass on Stata 18. See `VALIDATION.md` (engine
 correctness, display fidelity, the portability test, edge cases, privacy), `USABILITY.md` (the

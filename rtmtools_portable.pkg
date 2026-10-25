@@ -44,3 +44,5 @@ f portable_do_files/adopt_test/adopt_round1.dta
 f portable_do_files/adopt_test/adopt_totals_long.dta
 f portable_do_files/adopt_test/adopt_frame.dta
 f portable_do_files/adopt_test/adopt_listing.dta
+f portable_do_files/00_inputs.do
+f portable_do_files/rtm_inputs.xlsx

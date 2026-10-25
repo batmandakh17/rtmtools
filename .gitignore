@@ -15,3 +15,8 @@ demo/
 # export folders written by runs and tests
 rtm_exports/
 rtm_exports_adopt/
+rtm_outputs/
+*_filled.do
+inputs_data/
+*_checked.xlsx
+rtm_inputs_csv/

@@ -339,6 +339,7 @@ function card(m) {
     h += '<h3>Frame by stratum</h3>' + tableHtml(fs, 40) + src(m, 'frame_summary');
     h += '<div class="row"><div class="chart">' + barChart(col(fs, 'stratum'), col(fs, 'size_sum'), 'Size by stratum') + '</div><div class="chart">' + barChart(col(fs, 'stratum'), col(fs, 'n_flagged'), 'Flagged units by stratum') + '</div></div>';
   }
+  if (d.input_checks) h += '<h3>Input checks (the workbook, sheet by sheet)</h3>' + tableHtml(d.input_checks, 40) + src(m, 'input_checks');
   if (d.listing_checks) h += '<h3>Listing checks</h3>' + tableHtml(d.listing_checks, 20) + src(m, 'listing_checks');
   if (d.listing_areas) {
     var la = d.listing_areas;

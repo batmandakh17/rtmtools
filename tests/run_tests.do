@@ -8,7 +8,7 @@ set more off
 capture log close _all
 global rtm_here "`c(pwd)'"
 adopath ++ "${rtm_here}/.."
-global rtm_tests "test_weights test_calibrate test_est test_edge test_badinput test_repro test_sample test_frame test_listing test_export test_portable test_install"
+global rtm_tests "test_weights test_calibrate test_est test_edge test_badinput test_repro test_sample test_frame test_listing test_export test_input test_portable test_install"
 tempname fh
 file open `fh' using "${rtm_here}/results.txt", write text replace
 file write `fh' "rtmtools tests, `c(current_date)' `c(current_time)', Stata `c(stata_version)'" _n

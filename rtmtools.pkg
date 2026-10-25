@@ -32,6 +32,11 @@ d
 d Author: Real-Time Monitoring Survey Handbook task team, World Bank
 d
 F rtmtools.sthlp
+F rtmtools.ado
+F rtminput.ado
+F rtminput.dlg
+F rtminput.sthlp
+F rtm_inputs.xlsx
 F rtmtools_setup.ado
 F rtmtools_setup.sthlp
 F rtmweight.ado

@@ -8,6 +8,10 @@ This guide walks through `04_weights.do` in sections 1 to 5 and the other three 
 
 From the repository (ZIP or clone) the folder layout is the one the parameter blocks assume: the template data in `template/` beside the do-files. From Stata, `net get rtmtools_portable, from("https://raw.githubusercontent.com/batmandakh17/rtmtools/main/")` puts the same files in the current folder without subfolders and with lower-cased names (this guide arrives as `adaptation.md`): make a `template` folder and move the `rtm_*` files into it, or drop `template/` from the paths in the parameter blocks. The do-files do not need the `rtmtools` package itself.
 
+## 0b. Filling the parameter blocks from the input workbook
+
+If your program has filled the input workbook (`rtm_inputs.xlsx`, the same one `rtminput` reads; a copy with the template data's paths is in this folder), you need not edit the parameter blocks by hand: set the workbook's path and the round number at the top of `00_inputs.do` and run it. It writes the Frame, Totals and Cells sheets as Stata files into `inputs_data/`, and copies `03_sample.do` and `04_weights.do` to `03_sample_filled.do` and `04_weights_filled.do` with their parameter lines replaced from the Design and Files sheets (file paths, variable names, sizes, allocation, sorting, reserves, seeds, the nonresponse method and its covariates, trimming, calibration). Run the filled copies; the rest of this guide explains every line they contain. Choices the do-files do not cover are listed when it runs and left at the do-files' values: grid frames, random digit dialing, a second stage from a completed listing, Neyman allocation, `reserve_areas all`, and `nonresponse none`; `rtminput, sampling` and `rtminput, weights` run those.
+
 ## 1. What you need
 
 | You need | Why | Parameter |

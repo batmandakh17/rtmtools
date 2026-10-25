@@ -30,7 +30,7 @@ TEMPLATE = os.path.join(ROOT, "rtm_display.xlsx")
 ALLOWED = {"IF", "IFERROR", "INDEX", "MATCH", "COUNTIF", "COUNTA", "NA"}
 NOT_IN = "not in this export"
 FUNC_RE = re.compile(r"([A-Z][A-Z0-9_.]*)\s*\(")
-DISPLAY_SHEETS = {"Weights", "Sampling", "Frame", "Listing"}
+DISPLAY_SHEETS = {"Weights", "Sampling", "Frame", "Listing", "Inputs"}
 
 
 def formula_inventory(path):
@@ -160,7 +160,7 @@ def check_run(run):
         print("  displayed values not checked (Excel not available); the formula inventory and the data sheets were checked")
         return ok
     manifest0 = {k: v for k, v in read_csv(os.path.join(run, "manifest.csv"))[1]}
-    sheetname = {"weights": "Weights", "sampling": "Sampling", "frame": "Frame", "listing": "Listing"}.get(manifest0.get("workflow", ""), "Weights")
+    sheetname = {"weights": "Weights", "sampling": "Sampling", "frame": "Frame", "listing": "Listing", "input": "Inputs"}.get(manifest0.get("workflow", ""), "Weights")
     wv = load_workbook(copy, data_only=True)[sheetname]
     wf = load_workbook(xl)[sheetname]
     mrows = read_csv(os.path.join(run, "manifest.csv"))[1]

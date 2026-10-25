@@ -35,6 +35,7 @@ TABLES = {
     "weight_units": ["unit_id", "stratum", "psu", "flag"],
     "flags": ["table", "unit_id", "stage", "value", "reason"],
     "replacements": ["unit_id", "candidate_id", "rank", "distance", "stratum", "adjacency"],
+    "input_checks": ["sheet", "row", "column", "severity", "problem"],
 }
 ALLOWED_FUNCTIONS = ["IF", "IFERROR", "INDEX", "MATCH", "COUNTIF", "COUNTA", "NA"]
 NOT_IN = "not in this export"
@@ -248,6 +249,34 @@ def build_listing(wb):
     w.freeze_panes = "A4"
 
 
+def build_inputs(wb):
+    w = wb.create_sheet("Inputs")
+    w.column_dimensions["A"].width = 44
+    for col in "BCDEFGHIJKLMNOPQRS":
+        w.column_dimensions[col].width = 13
+    w.column_dimensions["E"].width = 90
+    w["A1"] = "Inputs: the checks rtminput made on the input workbook"
+    w["A1"].font = HEAD
+    w["A2"] = "The Design settings as recorded and every problem found, sheet by sheet; nothing is recalculated here (see Notes)."
+    w["A2"].font = MUTED
+    r = run_block(w, 4)
+    r += 2
+    w.cell(row=r, column=1, value="Design settings (as recorded by Stata from the Design sheet)").font = SUB
+    for key, label in [("setting_project", "Project"), ("setting_seed", "Seed"), ("setting_output_dir", "Output folder"), ("setting_target", "Size target"),
+                       ("setting_n_areas", "Areas to select"), ("setting_allocation", "Allocation"), ("setting_stage1", "First stage"),
+                       ("setting_reserve_areas", "Reserve areas"), ("setting_households_per_area", "Households per area"), ("setting_phone_per_psu", "Phone per PSU"),
+                       ("setting_base_weight", "Base weight"), ("setting_nonresponse", "Nonresponse method"), ("setting_covariates", "Covariates"),
+                       ("setting_trim", "Trimming"), ("setting_calibrate", "Calibration"), ("setting_cal_vars", "Calibration variables")]:
+        r += 1
+        w.cell(row=r, column=1, value=label)
+        w.cell(row=r, column=2, value=manifest_lookup(key)).alignment = Alignment(horizontal="left")
+    r += 2
+    w.cell(row=r, column=1, value="Problems found (input_checks.csv; the Checks sheet of the checked copy holds the same rows)").font = SUB
+    r += 1
+    ref_block(w, r, 1, "input_checks", TABLES["input_checks"], 60, {2: "0"})
+    w.freeze_panes = "A4"
+
+
 def build():
     wb = Workbook()
     w = wb.active
@@ -379,13 +408,14 @@ def build():
     build_sampling(wb)
     build_frame(wb)
     build_listing(wb)
+    build_inputs(wb)
 
     # ---- Notes sheet ----
     n = wb.create_sheet("Notes")
     n.column_dimensions["A"].width = 120
     lines = [
         ("rtmtools display workbook (schema rtm-export-1.0)", HEAD),
-        ("This workbook displays what the Stata commands exported for one run (sheets Weights, Sampling, Frame, Listing; use the one of the run's", None),
+        ("This workbook displays what the Stata commands exported for one run (sheets Weights, Sampling, Frame, Listing, Inputs; use the one of the run's", None),
         ("workflow). Stata copies this template into the run folder and fills the sheet", None),
         ("'manifest' and one sheet per export table (weight_stages, response_classes, calibration_fit, weight_groups, flags, ...) from the same", None),
         ("CSV files that the dashboard reads. Nothing in this workbook recalculates a statistic: every value on the Weights sheet is a reference", None),

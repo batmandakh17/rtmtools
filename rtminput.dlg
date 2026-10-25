@@ -1,0 +1,82 @@
+/*
+  rtminput.dlg -- rtmtools 0.6.0 (25oct2026)
+  Dialog for: rtminput (one input workbook for the program: check it, or run sampling or weights from it)
+*/
+
+VERSION 16.0
+
+INCLUDE _std_medium
+DEFINE _dlght 330
+INCLUDE header
+
+HELP hlp1, view("help rtminput")
+RESET res1
+
+DIALOG main, label("rtminput - Check or run from the input workbook") tabtitle("Main")
+BEGIN
+  TEXT     tx_file       _lft    _top    _iwd    .,			///
+	label("Input workbook (rtm_inputs.xlsx; or type the path of a folder of CSV files):")
+  FILE     fi_file       @       _ss     _iwd    .,			///
+	label("Browse...")						///
+	filter("Excel workbook (*.xlsx)|*.xlsx|All files (*.*)|*.*")
+  TEXT     tx_what       _lft    _ls     _iwd    .,			///
+	label("What to do:")
+  RADIO    rb_check      @       _ss     _iwd    .,  first		///
+	label("Check every sheet and write the problems into a copy of the workbook (Checks sheet)")	///
+	onclickon(script off_round)
+  RADIO    rb_sampling   @       _ss     _iwd    .,			///
+	label("Sampling: size, frame check, allocation, draw, second stage, phone subsample, as the Design sheet says")	///
+	onclickon(script off_round)
+  RADIO    rb_weights    @       _ss     _iwd    .,  last		///
+	label("Weights of one round: base, nonresponse, trim, calibrate, report, as the Design sheet says")	///
+	onclickon(script on_round)
+  TEXT     tx_round      _lft    _ls     200     .,			///
+	label("Round number (Files sheet):")
+  SPINNER  sp_round      210     @       60      .,			///
+	label("Round")							///
+	min(1) max(999) default(1)					///
+	option(round)
+  TEXT     tx_out        _lft    _ls     _iwd    .,			///
+	label("Output folder (blank = output_dir of the Design sheet, default rtm_outputs):")
+  EDIT     ed_out        @       _ss     _iwd    .,			///
+	label("Output folder")						///
+	option(outdir)
+  CHECKBOX ck_nofiles    _lft    _ls     _iwd    .,			///
+	label("Do not look for the data files named on the Files sheet (check the sheets only)")	///
+	option(nofiles)
+  TEXT     tx_note       _lft    _ls     _iwd    .,			///
+	label("Every statistical step is an rtmtools command; the commands run are written to a do-file in the output folder.")
+END
+
+SCRIPT off_round
+BEGIN
+	main.tx_round.disable
+	main.sp_round.disable
+END
+
+SCRIPT on_round
+BEGIN
+	main.tx_round.enable
+	main.sp_round.enable
+END
+
+PROGRAM command
+BEGIN
+	put "rtminput using "
+	require main.fi_file
+	put `"""' main.fi_file `"""'
+	beginoptions
+		if main.rb_check {
+			put " check"
+		}
+		if main.rb_sampling {
+			put " sampling"
+		}
+		if main.rb_weights {
+			put " weights"
+			optionarg main.sp_round
+		}
+		optionarg main.ed_out
+		option main.ck_nofiles
+	endoptions
+END

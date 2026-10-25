@@ -95,6 +95,7 @@ program define _rtmtools_menu
     window menu append submenu "RTM tools" "Listing"
     window menu append item "Listing" "Listing forms for the selected areas..." "db rtmlist_prepare"
     window menu append item "Listing" "Import the completed listing..." "db rtmlist_import"
+        window menu append item "RTM tools" "Run from the input workbook..." "db rtminput"
     window menu append item "RTM tools" "Estimate with the design..." "db rtmest"
     window menu append separator "RTM tools"
     window menu append item "RTM tools" "Dashboard and export folder" "rtmtools_dashboard"
