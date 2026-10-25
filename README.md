@@ -2,25 +2,27 @@
 
 Stata tools, with dialog boxes under **User > RTM tools**, for the statistical design work
 around a real-time monitoring phone panel, with a display-only Excel workbook and dashboard, and
-a portable do-file package another program can adapt. Version 0.5.0 (25 October 2026).
+a portable do-file package another program can adapt. Version 0.5.0 (25 October 2026): the four
+workflows (weights, sampling, frames, listing support) in their four forms, without R.
 
 Stata is the only computational engine. Every sampling and weighting statistic is computed by a
 Stata command of the package or by the portable do-file of the same workflow; both write the same
 export (one folder per run: `manifest.json`, `manifest.csv`, CSV tables, an Excel workbook). The
 Excel workbook and the dashboard read that export and show it; neither computes a probability, a
-weight, a factor or a fit statistic. No R anywhere in the weighting workflow (the grid-frame and
-spatially balanced steps of earlier versions still call R until they are rebuilt without it).
+weight, a factor or a fit statistic. Nothing in the package uses R: the grid frames read a text
+raster and a shapefile with Stata commands, and the spatially balanced draw of earlier versions is
+replaced by a serpentine systematic draw (what is lost is stated in `help rtmsample`).
 
 ## What is in the package
 
 | Piece | Where | What it is |
 |---|---|---|
-| Stata commands and dialogs | the `.ado`, `.dlg`, `.sthlp` files | `rtmweight` (base, nonresponse, trim, calibrate, household, report), `rtmsample`, `rtmframe`, `rtmest`, `rtmtools_setup`, `rtmtools_dashboard` |
-| Portable do-files | `portable_do_files/` | `00_setup.do`, `04_weights.do` (parameter block at the top, a comment above every step), `_export_helpers.do`, `ADAPTATION.md`, the template data and a second synthetic program (`adopt_test/`) for the portability test |
-| Excel display | `rtm_display.xlsx` (template; `excel/build_display.py` builds it) | copied into every run folder and filled with that run's tables by Stata; its Weights sheet shows them with lookups and charts only |
+| Stata commands and dialogs | the `.ado`, `.dlg`, `.sthlp` files | `rtmweight` (base, nonresponse, trim, calibrate, household, report), `rtmsample` (size, allocate, draw, grid, rdd), `rtmframe` (list, grid, replace, split), `rtmlist` (prepare, import), `rtmest`, `rtmtools_setup`, `rtmtools_dashboard` |
+| Portable do-files | `portable_do_files/` | `00_setup.do`, `01_frame.do`, `02_listing.do`, `03_sample.do`, `04_weights.do` (a parameter block at the top, a comment above every step), `_export_helpers.do`, `ADAPTATION.md`, the template data and a second synthetic program (`adopt_test/`) for the portability test |
+| Excel display | `rtm_display.xlsx` (template; `excel/build_display.py` builds it) | copied into every run folder and filled with that run's tables by Stata; its Weights, Sampling, Frame and Listing sheets show them with lookups, charts and coordinate maps only |
 | Dashboard | `rtmtools_dashboard.html` | a self-contained page written into the export folder; reads the live index `rtm_exports.js` and refreshes every 3 seconds; can also open any export folder |
 | Tests | `tests/` | `run_tests.do` (12 test files), `check_display.py` (formula inventory and displayed values of the workbook) |
-| Sample data | `data/` | synthetic, made by `data/make_rtm_synthetic.do`; no real household |
+| Sample data | `data/` | synthetic, made by `data/make_rtm_synthetic.do` (households, rounds, totals, a completed listing) and `data/make_rtm_spatial.py` (boundaries shapefile, population raster as an ESRI ASCII grid); no real household or place |
 
 ## Install
 
@@ -30,10 +32,11 @@ From GitHub (the public repository `batmandakh17/rtmtools`):
 
 ```
 . net install rtmtools, from("https://raw.githubusercontent.com/batmandakh17/rtmtools/main/") replace
-. net get rtmtools, from("https://raw.githubusercontent.com/batmandakh17/rtmtools/main/")   // sample data and the portable do-files into the current folder
+. net get rtmtools, from("https://raw.githubusercontent.com/batmandakh17/rtmtools/main/")            // sample data into the current folder
+. net get rtmtools_portable, from("https://raw.githubusercontent.com/batmandakh17/rtmtools/main/")   // portable do-files, template data and ADAPTATION.md
 ```
 
-From a local copy of this folder: the same two lines with `from("/path/to/appendix_tools_stata")`.
+From a local copy of this folder: the same three lines with `from("/path/to/appendix_tools_stata")`.
 To move an installed copy to a newer version: `ado update rtmtools, update`.
 
 Then run the setup once:
@@ -41,7 +44,7 @@ Then run the setup once:
 ```
 . rtmtools_setup            // adds User > RTM tools for this session and checks the dependencies
 . rtmtools_setup, profile   // also appends the menu to profile.do so it is there at every start
-. rtmtools_setup, install   // installs the missing SSC commands (survwgt, ebalance, ipfraking, gsample, moremata, geoinpoly, sreweight)
+. rtmtools_setup, install   // installs the missing SSC commands (survwgt, ebalance, ipfraking, gsample, moremata, shp2dta, geoinpoly, sreweight)
 ```
 
 ## The weighting workflow in Stata
@@ -99,15 +102,22 @@ export for the session.
 
 ## The portable do-files (for another program)
 
-`portable_do_files/04_weights.do` does the same weighting workflow in plain Stata, written to be
-read top to bottom: a parameter block at the very top (file paths, variable names, strata and PSU,
-the method and its settings, trimming, calibration, totals), a comment above every step with its
-source, and no dependency on this project's data. It writes the same export as the commands, so
-the Excel workbook and the dashboard display it the same way. `ADAPTATION.md` walks through which
-lines to change and why; `00_setup.do` installs the community commands once. The portability
-test (`tests/test_portable.do`) adapts only the parameter block to the second synthetic program
-in `adopt_test/` (other variable names, three strata, PSUs of unequal size, another totals
-layout) and checks that the run completes and the weights add to the totals.
+`portable_do_files/` holds the four workflows as plain Stata do-files written to be read top to
+bottom and copied by another program: `01_frame.do` (a list frame checked and merged, or a grid
+frame from a shapefile and a population raster), `02_listing.do` (listing forms with segmentation,
+then the completed listing checked into the household frame), `03_sample.do` (sample size,
+allocation, systematic PPS draw of areas with certainty units, households per area, the phone
+subsample of a baseline) and `04_weights.do` (the weighting chain). Each has a parameter block at
+the very top (file paths, variable names, the method and its settings), a comment above every step
+with its source, and no dependency on this project's data or on the installed package. They write
+the same export as the commands, so the Excel workbook and the dashboard display them the same
+way. `ADAPTATION.md` walks through which lines to change and why; `00_setup.do` installs the
+community commands once. The portability test (`tests/test_portable.do`) adapts only the parameter
+blocks to the second synthetic program in `adopt_test/` and checks that every run completes and
+reproduces the commands.
+
+Two ways to get them. The repository (Code > Download ZIP, or `git clone`) keeps the folder layout
+the parameter blocks assume (`template/` beside the do-files):
 
 ```
 . cd portable_do_files
@@ -115,25 +125,52 @@ layout) and checks that the run completes and the weights add to the totals.
 . do 04_weights.do
 ```
 
-## Sample design and frames (earlier versions, unchanged)
+`net get rtmtools_portable` (see Install) puts the do-files, the template data and the guide in the
+current folder with no subfolders, and Stata lower-cases the names (`adaptation.md`): either make a
+`template` folder there and move the `rtm_*` files into it, or drop `template/` from the paths in
+the parameter block.
+
+## Sampling, frames and listing
 
 ```
 . rtmsample size, p(0.2) deff(1) attrition(0.015) rounds(24) firstloss(0.25) domains(4)
 . use rtm_frame, clear
-. rtmsample allocate, strata(region urban) n(100) size(ea_size_census) min(10) max(16) generate(n_ea)
-. rtmsample draw, n(n_ea) strata(stratum) pps(ea_size_census) sort(region urban ea_id) reserve(2) seed(20261024) generate(ea)
 . rtmframe list, id(ea_id) size(ea_size_census) strata(stratum) minsize(80) maxsize(250)
+. rtmsample allocate, strata(region urban) n(100) size(ea_size_census) min(10) max(16) generate(n_ea)
+. rtmsample draw, n(n_ea) strata(stratum) pps(ea_size_census) sort(region urban ea_id) reserve(2) seed(20261024) id(ea_id) generate(ea)
+. keep if ea_sel
+. rtmlist prepare, id(ea_id) expected(ea_size_census) strata(stratum) segmentsize(150) seed(3) saving(listing_forms.xlsx) replace
+. rtmlist import using rtm_listing.dta, id(ea_id) expected(ea_size_census) saving(stage2_frame.dta) replace clear
+. rtmsample draw, n(12) strata(area_id) seed(20261025) id(hh_seq) generate(hh)
 ```
 
-The grid-frame and spatially balanced steps (`rtmframe grid|replace|split`, `rtmsample grid`)
-are the R-backed steps of version 0.4.0; they are to be rebuilt without R in the next steps of
-the build and are not part of the display and portable packages yet.
+The phone subsample of a baseline, every other household an ordered replacement (the L2 practice),
+and a random digit dialling sample:
+
+```
+. use rtm_baseline, clear
+. rtmsample draw, n(6) strata(psu) seed(20251027) reserve(all) id(hhid) generate(ph)
+. rtmsample rdd, prefixes(61 62 77) n(300 300 400) digits(6) seed(5) clear
+```
+
+Grid frames where no list frame exists: the boundaries as an ESRI shapefile and the population
+raster as an ESRI ASCII grid, both in one projected coordinate system (a one-time conversion in
+QGIS from GeoPackage and GeoTIFF; `help rtmframe` gives the steps), then a spatially spread draw:
+
+```
+. rtmframe grid using rtm_boundaries.shp, raster(rtm_population.asc) cellsize(5000) strata(regcode) id(region) minsize(500) saving(rtm_grid5.dta) savingpixels(rtm_pixels5.dta) clear replace
+. rtmsample grid, n(5) strata(stratum) pps(pop) xy(x y) reserve(2) seed(20261025) id(cell_id) generate(g)
+. rtmframe replace, cells(45 212) selected(g_sel) ncand(3) saving(rtm_repl.dta) replace
+. rtmframe split, cells(45) parts(2) pixels(rtm_pixels5.dta) saving(rtm_parts.dta) replace
+```
+
+The dashboard maps the selected cells and the boundaries from the exported coordinates.
 
 ## Status (25 October 2026)
 
-Version 0.5.0 is Step 2 of the build plan: the weighting workflow in its four forms (Stata
-command and dialog, portable do-file, Excel display sheet, dashboard tile) on the shared export
-schema `rtm-export-1.0`. All twelve test files pass on Stata 18. See `VALIDATION.md` (engine
+Version 0.5.0 covers the four workflows (weights, sampling, frames, listing) in their four forms
+(Stata command and dialog, portable do-file, Excel display sheet, dashboard tile) on the shared
+export schema `rtm-export-1.0`, with no R anywhere. All test files pass on Stata 18. See `VALIDATION.md` (engine
 correctness, display fidelity, the portability test, edge cases, privacy), `USABILITY.md` (the
 home-team and adopting-team passes) and `OPEN_ITEMS.md` (questions for the handbook's author,
 dependencies, what is untested). The dialogs passed static checks only; they have not yet been
@@ -148,6 +185,7 @@ opened in the Stata GUI.
 
 `run_tests.do` runs every `test_*.do` and prints PASS or FAIL for each: hand calculations on a
 tiny frame, the synthetic data, the ebalance equality, the svycal and ipfraking cross-check, the
+UN 2008 systematic PPS example, the grid frame against the raster total, the listing checks, the
 export schema, the portability test, edge cases, bad inputs, reproducibility and an install test.
 `python3 tests/check_display.py run_folder` checks the Excel workbook of a run: every formula is
 in the allowed list, the data sheets equal the CSV files, and (with Excel on the machine) every

@@ -64,11 +64,11 @@ BEGIN
   GROUPBOX gb_res        _lft    +40     _iwd    70,			///
 	label("Reserve units per stratum, flagged for replacement (UN 2008: substitution is biased; prefer oversampling)")
   RADIO    rb_rnum       _ilft   _ss     130     ., first		///
-	label("a number (0 = none):")					///
+	label("a number (0 = none; 'all' = every other unit, in order):")	///
 	onclickon(script r_num)
   EDIT     ed_res        150     @       80      .,			///
 	label("Reserve")						///
-	numonly default(0)						///
+	default(0)							///
 	option(reserve)
   RADIO    rb_rvar       _ilft   _ms     130     ., last		///
 	label("a variable:")						///

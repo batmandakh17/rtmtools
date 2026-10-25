@@ -1,4 +1,4 @@
-*! rtmframe_list.ado  version 0.3.0  24oct2026  rtmtools
+*! rtmframe_list.ado  version 0.5.0  25oct2026  rtmtools
 *! Checks and flags for a list frame of areas (census enumeration areas or similar): unique
 *! identifiers, missing or non-positive measures of size, units too small to sample (combined
 *! with the following units in the sort order within the stratum) or too large to list (number
@@ -205,7 +205,7 @@ program define rtmframe_list, rclass
         local rn "`rn' s`g'"
     }
     matrix rownames `T' = `rn'
-    return matrix table = `T'
+    return matrix table = `T', copy
     return scalar N = `N'
     return scalar N_ok = `n_ok'
     return scalar n_dup = `n_dup'
@@ -222,4 +222,48 @@ program define rtmframe_list, rclass
     local cmd `"rtmframe list `0'"'
     return local cmdline `"`cmd'"'
     _rtm_util record, step(frame) cmd(`"`cmd'"') var(frame_ok)
+
+    * ---- export (schema rtm-export-1.0): the units with their flags, the summary by stratum ----
+    if `N' <= 200000 {
+        tempvar uid sz lab2 fl
+        local idv : word 1 of `id'
+        capture confirm string variable `idv'
+        if _rc quietly gen str32 `uid' = string(`idv')
+        else quietly gen str32 `uid' = `idv'
+        if "`size'" != "" quietly gen double `sz' = `size'
+        else quietly gen double `sz' = .
+        _rtmsample_label `strata', touse(`touse') generate(`lab2')
+        quietly gen str64 `fl' = ""
+        quietly replace `fl' = "duplicate id" if frame_dup == 1
+        quietly replace `fl' = `fl' + cond(`fl' == "", "", "; ") + "bad size" if frame_badsize == 1
+        quietly replace `fl' = `fl' + cond(`fl' == "", "", "; ") + "small" if frame_small == 1
+        quietly replace `fl' = `fl' + cond(`fl' == "", "", "; ") + "large: " + string(frame_segments) + " segments" if frame_large == 1
+        quietly replace `fl' = `fl' + cond(`fl' == "", "", "; ") + "excluded" if frame_excl == 1
+        capture frame drop _rtmx_fu
+        frame put `uid' `lab2' `sz' `fl' if `touse', into(_rtmx_fu)
+        frame _rtmx_fu {
+            rename (`uid' `lab2' `sz' `fl') (unit_id stratum size flag)
+            quietly gen str32 unit = ""
+            quietly gen double x = .
+            quietly gen double y = .
+            order unit_id stratum unit size x y flag
+        }
+        capture _rtm_export table, name(frame_units) frame(_rtmx_fu)
+    }
+    capture frame drop _rtmx_fs
+    frame create _rtmx_fs str80 stratum double(n_units size_sum size_min size_p50 size_max n_flagged)
+    tempvar lab3
+    _rtmsample_label `strata', touse(`touse') generate(`lab3')
+    forvalues g = 1/`H' {
+        quietly summarize `ord0' if `touse' & `grp' == `g', meanonly
+        local lg = `lab3'[`r(min)']
+        quietly count if `touse' & `grp' == `g' & frame_ok == 0
+        frame post _rtmx_fs ("`=usubstr("`lg'", 1, 80)'") (`T'[`g', 1]) (`T'[`g', 3]) (`T'[`g', 4]) (`T'[`g', 5]) (`T'[`g', 6]) (r(N))
+    }
+    capture _rtm_export table, name(frame_summary) frame(_rtmx_fs)
+    capture _rtm_export setting, key(id) value("`id'")
+    if "`size'" != "" capture _rtm_export setting, key(size) value("`size'")
+    if "`strata'" != "" capture _rtm_export setting, key(strata) value("`strata'")
+    if `minsize' > 0 | `maxsize' > 0 capture _rtm_export setting, key(size_bounds) value("min `minsize' max `maxsize'") source("GM 1996 pp. 80-84 (units under 30 households appended; over 300 segmented)")
+    if "`merge'" != "" capture _rtm_export setting, key(merge) value("`merge'")
 end

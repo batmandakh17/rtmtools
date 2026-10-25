@@ -1,202 +1,100 @@
 /*
-  rtmframe_grid.dlg -- rtmtools 0.3.0 (24oct2026)
-  Dialog for: rtmframe grid (needs R with sf and terra)
+  rtmframe_grid.dlg -- rtmtools 0.5.0 (25oct2026)
+  Dialog for: rtmframe grid (grid frame from a population raster and boundaries; no R)
 */
 
 VERSION 16.0
 
 INCLUDE _std_medium
-DEFINE _dlght 560
+DEFINE _dlght 470
 INCLUDE header
 
 HELP hlp1, view("help rtmframe##grid")
 RESET res1
 
-DIALOG main, label("rtmframe grid - Grid frame from boundaries and a raster (needs R)") tabtitle("Main")
+DIALOG main, label("rtmframe grid - Grid frame from a population raster and boundaries") tabtitle("Main")
 BEGIN
-  TEXT     tx_b          _lft    _top    _iwd    .,			///
-	label("Boundaries file (GeoPackage, shapefile or GeoJSON):")
-  FILE     fi_b          @       _ss     _iwd    .,			///
+  TEXT     tx_shp        _lft    _top    _iwd    .,			///
+	label("Boundaries: an ESRI shapefile (.shp) in a projected coordinate system (metres):")
+  FILE     fi_shp        @       _ss     _iwd    .,			///
 	label("Browse...")						///
-	filter("GeoPackage (*.gpkg)|*.gpkg|Shapefile (*.shp)|*.shp|GeoJSON (*.geojson)|*.geojson|All files (*.*)|*.*")
-  TEXT     tx_layer      _lft    _ms     200     .,			///
-	label("Layer (GeoPackage only, optional):")
-  EDIT     ed_layer      210     @       150     .,			///
-	label("Layer")							///
-	option(layer)
-
-  GROUPBOX gb_mos        _lft    _xls    _iwd    120,			///
-	label("Measure of size of a cell")
-  RADIO    rb_none       _ilft   _ss     _ibwd   ., first		///
-	label("None (area only)")					///
-	onclickon(script mos_none)
-  RADIO    rb_raster     _ilft   _ms     _ibwd   .,			///
-	label("Sum of a population or building raster (GeoTIFF) inside the cell:")	///
-	onclickon(script mos_raster)
-  FILE     fi_r          _iilft  _ss     _iibwd  .,			///
+	filter("Shapefile (*.shp)|*.shp|All files (*.*)|*.*")
+  TEXT     tx_ras        _lft    _ls     _iwd    .,			///
+	label("Population raster: an ESRI ASCII grid (.asc) in the same coordinate system (GeoTIFF: convert once in QGIS):")
+  FILE     fi_ras        @       _ss     _iwd    .,			///
 	label("Browse...")						///
-	filter("GeoTIFF (*.tif)|*.tif;*.tiff|All files (*.*)|*.*")	///
+	filter("ESRI ASCII grid (*.asc)|*.asc|All files (*.*)|*.*")	///
 	option(raster)
-  RADIO    rb_points     _ilft   _ms     _ibwd   ., last		///
-	label("Points inside the cell (a file of buildings or households):")	///
-	onclickon(script mos_points)
-  FILE     fi_p          _iilft  _ss     200     .,			///
-	label("Browse...")						///
-	filter("GeoPackage (*.gpkg)|*.gpkg|Shapefile (*.shp)|*.shp|GeoJSON (*.geojson)|*.geojson|All files (*.*)|*.*")	///
-	option(points)
-  TEXT     tx_pw         +205    @       60      .,			///
-	label("weight:")
-  EDIT     ed_pw         +60     @       90      .,			///
-	label("Weight column")						///
-	option(pointweight)
-
-  GROUPBOX gb_cells      _lft    +40     _iwd    75,			///
-	label("Cells")
-  RADIO    rb_cs         _ilft   _ss     250     ., first		///
-	label("Side of a square cell, in metres:")			///
-	onclickon(script cells_size)
-  EDIT     ed_cs         270     @       100     .,			///
+  TEXT     tx_cs         _lft    _ls     250     .,			///
+	label("Cell size (metres):")
+  EDIT     ed_cs         260     @       100     .,			///
 	label("Cell size")						///
 	numonly default(5000)						///
 	option(cellsize)
-  RADIO    rb_nc         _ilft   _ms     250     ., last		///
-	label("Approximate number of cells:")				///
-	onclickon(script cells_n)
-  EDIT     ed_nc         270     @       100     .,			///
-	label("Number of cells")					///
-	numonly							///
-	option(ncells)
-
-  TEXT     tx_strata     _lft    +45     250     .,			///
-	label("Stratum: a column of the boundaries file (optional):")
-  EDIT     ed_strata     270     @       120     .,			///
-	label("Strata column")						///
+  TEXT     tx_str        _lft    _ls     250     .,			///
+	label("Stratum: an attribute of the shapefile (optional):")
+  EDIT     ed_str        260     @       150     .,			///
+	label("Stratum attribute")					///
 	option(strata)
-  TEXT     tx_groups     _lft    _ms     250     .,			///
-	label("Homogeneous size groups by k-means (0 = none):")
-  SPINNER  sp_groups     270     @       70      .,			///
-	label("Groups")							///
-	min(0) max(20) default(0)					///
-	option(groups)
-  TEXT     tx_minpop     _lft    _ms     250     .,			///
-	label("Drop cells with size at or below:")
-  EDIT     ed_minpop     270     @       70      .,			///
-	label("Minimum size")						///
+  TEXT     tx_id         _lft    _ls     250     .,			///
+	label("Unit name: an attribute of the shapefile (optional):")
+  EDIT     ed_id         260     @       150     .,			///
+	label("Unit attribute")						///
+	option(id)
+  TEXT     tx_min        _lft    _ls     250     .,			///
+	label("Flag cells with population below (0 = no flag):")
+  EDIT     ed_min        260     @       100     .,			///
+	label("Minimum population")					///
 	numonly default(0)						///
-	option(minpop)
-  CHECKBOX ck_keep       _lft    _ms     _iwd    .,			///
-	label("Keep cells without population")				///
-	option(keepempty)
-  TEXT     tx_crs        _lft    _ms     250     .,			///
-	label("Projected CRS, EPSG code (blank = UTM zone chosen):")
-  EDIT     ed_crs        270     @       70      .,			///
-	label("EPSG code")						///
-	numonly							///
-	option(crs)
-  TEXT     tx_seed       _lft    _ms     250     .,			///
-	label("Seed for the k-means groups:")
-  EDIT     ed_seed       270     @       70      .,			///
-	label("Seed")							///
-	numonly default(1)						///
-	option(seed)
-
-  TEXT     tx_save       _lft    _ls     _iwd    .,			///
-	label("Save the cells and boundaries as a GeoPackage (for rtmsample grid, maps, the field application):")
-  FILE     fi_save       @       _ss     _iwd    .,			///
+	option(minsize)
+  TEXT     tx_blk        _lft    _ls     250     .,			///
+	label("Aggregate pixels into blocks of (1 = none; speeds up large rasters):")
+  SPINNER  sp_blk        260     @       70      .,			///
+	label("Blocks")							///
+	min(1) max(100) default(1)					///
+	option(blocks)
+  TEXT     tx_sav        _lft    _ls     _iwd    .,			///
+	label("Save the cell frame to (optional):")
+  FILE     fi_sav        @       _ss     _iwd    .,			///
 	label("Browse...")						///
-	filter("GeoPackage (*.gpkg)|*.gpkg")				///
 	save								///
+	filter("Stata data (*.dta)|*.dta")				///
 	option(saving)
-  TEXT     tx_map        _lft    _ms     150     .,			///
-	label("Map (PNG, optional):")
-  FILE     fi_map        160     @       250     .,			///
+  TEXT     tx_pix        _lft    _ls     _iwd    .,			///
+	label("Save the pixel table to (optional; needed by rtmframe split):")
+  FILE     fi_pix        @       _ss     _iwd    .,			///
 	label("Browse...")						///
-	filter("PNG (*.png)|*.png")					///
 	save								///
-	option(map)
-  CHECKBOX ck_clear      _lft    _ms     _iwd    .,			///
-	label("Replace the data in memory with the frame (clear)")	///
-	default(1)							///
-	option(clear)
-END
-
-SCRIPT mos_none
-BEGIN
-	main.fi_r.disable
-	main.fi_p.disable
-	main.ed_pw.disable
-END
-
-SCRIPT mos_raster
-BEGIN
-	main.fi_r.enable
-	main.fi_p.disable
-	main.ed_pw.disable
-END
-
-SCRIPT mos_points
-BEGIN
-	main.fi_r.disable
-	main.fi_p.enable
-	main.ed_pw.enable
-END
-
-SCRIPT cells_size
-BEGIN
-	main.ed_cs.enable
-	main.ed_nc.disable
-END
-
-SCRIPT cells_n
-BEGIN
-	main.ed_cs.disable
-	main.ed_nc.enable
-END
-
-SCRIPT POSTINIT
-BEGIN
-	script mos_none
-	script cells_size
+	filter("Stata data (*.dta)|*.dta")				///
+	option(savingpixels)
+  CHECKBOX ck_replace    _lft    _ls     300     .,			///
+	label("Replace the saved files if they exist")			///
+	option(replace)
+  TEXT     tx_note       _lft    _ls     _iwd    .,			///
+	label("The cell frame replaces the data in memory (unsaved changes stop the command unless saved first).")
 END
 
 PROGRAM command
 BEGIN
 	put "rtmframe grid using "
-	require main.fi_b
-	put main.fi_b
+	require main.fi_shp
+	put `"""' main.fi_shp `"""'
 	beginoptions
-		optionarg main.ed_layer
-		if main.rb_raster {
-			require main.fi_r
-			optionarg main.fi_r
+		require main.fi_ras
+		optionarg main.fi_ras
+		require main.ed_cs
+		optionarg main.ed_cs
+		optionarg main.ed_str
+		optionarg main.ed_id
+		if !main.ed_min.isdefault() {
+			optionarg main.ed_min
 		}
-		if main.rb_points {
-			require main.fi_p
-			optionarg main.fi_p
-			optionarg main.ed_pw
+		if !main.sp_blk.isdefault() {
+			optionarg main.sp_blk
 		}
-		if main.rb_cs {
-			require main.ed_cs
-			optionarg main.ed_cs
-		}
-		else {
-			require main.ed_nc
-			optionarg main.ed_nc
-		}
-		optionarg main.ed_strata
-		if !main.sp_groups.isdefault() {
-			optionarg main.sp_groups
-		}
-		if !main.ed_minpop.isdefault() {
-			optionarg main.ed_minpop
-		}
-		option main.ck_keep
-		optionarg main.ed_crs
-		if !main.ed_seed.isdefault() {
-			optionarg main.ed_seed
-		}
-		optionarg main.fi_save
-		optionarg main.fi_map
-		option main.ck_clear
+		optionarg main.fi_sav
+		optionarg main.fi_pix
+		option main.ck_replace
+		put " clear"
 	endoptions
 END

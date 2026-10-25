@@ -228,3 +228,43 @@ gen byte age_grp = cond(age <= 17, 1, cond(age <= 45, 2, 3))
 collapse (count) N_persons = fmid, by(region urban female age_grp)
 label var N_persons "Persons in the population (synthetic census)"
 save rtm_totals_persons.dta, replace
+
+* ---------- 8. a completed household listing of the selected areas (for rtmlist import) ----------
+* one row per listed household of the 100 baseline EAs: structure and household numbers, eligibility,
+* a phone flag; planted problems: one area not returned, one area over-listed (growth), one under-listed,
+* two duplicate rows, one area that was not selected. No names, no addresses, no phone numbers.
+use rtm_frame.dta, clear
+keep if ea_selected
+keep ea_id ea_size_census stratum
+set seed 20261029
+gen int listed_n = round(ea_size_census * (0.9 + 0.2 * runiform()))
+sort ea_id
+replace listed_n = round(ea_size_census * 2.6) in 5          // over-listed
+replace listed_n = round(ea_size_census * 0.3) in 9          // under-listed
+drop in 13                                                   // not returned
+expand listed_n
+bysort ea_id: gen int structure_no = _n
+gen byte household_no = 1
+gen byte eligible = (runiform() < 0.97)
+gen byte has_phone = cond(runiform() < 0.8, 1, cond(runiform() < 0.5, 0, 9))
+gen str1 location_description = ""
+rename ea_id area_id
+keep area_id structure_no household_no eligible has_phone location_description
+* a non-selected area and two duplicate rows
+set obs `=_N + 3'
+replace area_id = 2 in -3/-1
+replace structure_no = _n - _N + 3 in -3/-1
+replace household_no = 1 in -3/-1
+replace eligible = 1 in -3/-1
+replace has_phone = 1 in -3/-1
+expand 2 in 7/8
+sort area_id structure_no household_no
+label var area_id "Enumeration area (listing)"
+label var structure_no "Structure number in the listing"
+label var household_no "Household number in the structure"
+label var eligible "Eligible household (1 = yes, 0 = no)"
+label var has_phone "Household has a telephone (1 yes, 0 no, 9 unknown)"
+note: Synthetic data made by make_rtm_synthetic.do (rtmtools). No real household is represented.
+compress
+save rtm_listing.dta, replace
+export excel using rtm_listing.xlsx, firstrow(variables) sheet("Listing") replace

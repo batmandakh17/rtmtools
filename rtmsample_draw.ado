@@ -1,4 +1,4 @@
-*! rtmsample_draw.ado  version 0.2.0  24oct2026  rtmtools
+*! rtmsample_draw.ado  version 0.5.0  25oct2026  rtmtools
 *! Draw a probability sample from the frame in memory, within strata:
 *!   srs         simple random sampling without replacement (gsample, Jann 2006)
 *!   systematic  equal-probability systematic sampling on the sorted frame (implicit stratification,
@@ -14,7 +14,7 @@
 program define rtmsample_draw, rclass
     version 16
     syntax [if] [in], N(string) GENerate(name) [STRata(varlist) PPS(varname numeric) METHod(string) ///
-        SORT(varlist) RESERVE(string) SEED(string) ID(varlist) REPLACE]
+        SORT(varlist) RESERVE(string) SEED(string) ID(varlist) XY(varlist min=2 max=2 numeric) REPLACE]
     marksample touse, novarlist
     if "`strata'" != "" markout `touse' `strata', strok
     if "`pps'" != "" markout `touse' `pps'
@@ -72,7 +72,8 @@ program define rtmsample_draw, rclass
     else quietly gen long `grp' = 1 if `touse'
     quietly bysort `grp': gen long `U' = _N if `touse'
     _rtmsample_pergroup `n', touse(`touse') grp(`grp') generate(`nh') what(n())
-    if "`reserve'" != "" _rtmsample_pergroup `reserve', touse(`touse') grp(`grp') generate(`rh') what(reserve())
+    if lower("`reserve'") == "all" quietly gen double `rh' = `U' - `nh' if `touse'      // every unselected unit is an ordered replacement (L2 practice)
+    else if "`reserve'" != "" _rtmsample_pergroup `reserve', touse(`touse') grp(`grp') generate(`rh') what(reserve())
     else quietly gen double `rh' = 0 if `touse'
     quietly count if `touse' & `nh' + `rh' > `U'
     if r(N) > 0 {
@@ -207,7 +208,7 @@ program define rtmsample_draw, rclass
     matrix rownames `T' = `rn'
 
     * ---- stored results and record ----
-    return matrix table = `T'
+    return matrix table = `T', copy
     return scalar N_frame = `Nframe'
     return scalar n_selected = `nsel'
     return scalar n_reserve = `nres'
@@ -223,6 +224,56 @@ program define rtmsample_draw, rclass
     return local cmdline `"`cmd'"'
     char _dta[rtm_draw_seed] "`seed'"
     _rtm_util record, step(draw) cmd(`"`cmd'"') var(`generate'_sel)
+
+    * ---- export (schema rtm-export-1.0): draw_summary per stratum and selection per unit ----
+    capture frame drop _rtmx_ds
+    frame create _rtmx_ds str80 stratum double(n_units n_selected n_reserve prob_min prob_max interval random_start)
+    forvalues g = 1/`H' {
+        quietly summarize `ord0' if `touse' & `grp' == `g', meanonly
+        local lg = `lab'[`r(min)']
+        frame post _rtmx_ds ("`=usubstr("`lg'", 1, 80)'") (`T'[`g', 1]) (`T'[`g', 3]) (`T'[`g', 5]) (`T'[`g', 6]) (`T'[`g', 7]) (.) (.)
+    }
+    capture _rtm_export table, name(draw_summary) frame(_rtmx_ds)
+    if `Nframe' <= 200000 {
+        tempvar uid xcoord ycoord
+        if "`id'" != "" {
+            local idv : word 1 of `id'
+            capture confirm string variable `idv'
+            if _rc quietly gen str32 `uid' = string(`idv')
+            else quietly gen str32 `uid' = `idv'
+        }
+        else quietly gen str32 `uid' = "obs " + string(`ord0')
+        if "`xy'" != "" {
+            local xv : word 1 of `xy'
+            local yv : word 2 of `xy'
+            quietly gen double `xcoord' = `xv'
+            quietly gen double `ycoord' = `yv'
+        }
+        else {
+            quietly gen double `xcoord' = .
+            quietly gen double `ycoord' = .
+        }
+        capture frame drop _rtmx_sl
+        frame put `uid' `lab' `size' `ord0' `generate'_sel `generate'_reserve `generate'_order `generate'_pi `generate'_w `xcoord' `ycoord' if `touse', into(_rtmx_sl)
+        frame _rtmx_sl {
+            rename (`uid' `lab' `size' `ord0' `generate'_sel `generate'_reserve `generate'_order `generate'_pi `generate'_w `xcoord' `ycoord') ///
+                   (unit_id stratum size order selected reserve rank prob weight x y)
+            quietly gen double key = .
+            quietly gen double cum_size = .
+            quietly gen double selection_number = .
+            order unit_id stratum size order key cum_size selection_number selected reserve rank prob weight x y
+        }
+        capture _rtm_export table, name(selection) frame(_rtmx_sl)
+    }
+    else capture _rtm_export message, text("selection table not exported: more than 200,000 units")
+    capture _rtm_export setting, key(method) value("`mdesc'") source("UN 2008 paras 77-79, 118-119; GM 1996 pp. 82-84; Hartley and Rao 1962 (gsample)")
+    capture _rtm_export setting, key(n) value("`n'")
+    if "`strata'" != "" capture _rtm_export setting, key(strata) value("`strata'")
+    if "`pps'" != "" capture _rtm_export setting, key(pps) value("`pps'")
+    if "`sort'" != "" capture _rtm_export setting, key(sort) value("`sort'")
+    if "`reserve'" != "" capture _rtm_export setting, key(reserve) value("`reserve'") source("UN 2008 paras 172, 178-179 (substitution is biased; document it)")
+    capture _rtm_export setting, key(seed) value("`seed'")
+    capture _rtm_export setting, key(generate) value("`generate'")
 end
 
 * ---- a number or a variable constant within strata, written to a per-observation variable ----

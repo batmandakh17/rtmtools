@@ -1,158 +1,98 @@
 /*
-  rtmsample_grid.dlg -- rtmtools 0.3.0 (24oct2026)
-  Dialog for: rtmsample grid (needs R with sf and spsurvey)
+  rtmsample_grid.dlg -- rtmtools 0.5.0 (25oct2026)
+  Dialog for: rtmsample grid (spatially spread draw of cells or points, serpentine systematic; no R)
 */
 
 VERSION 16.0
 
 INCLUDE _std_medium
-DEFINE _dlght 470
+DEFINE _dlght 420
 INCLUDE header
 
 HELP hlp1, view("help rtmsample##grid")
 RESET res1
 
-DIALOG main, label("rtmsample grid - Spatially balanced draw from a grid frame (needs R)") tabtitle("Main")
+DIALOG main, label("rtmsample grid - Spatially spread draw from a grid frame in memory") tabtitle("Main")
 BEGIN
-  TEXT     tx_f          _lft    _top    _iwd    .,			///
-	label("Grid frame file (GeoPackage); the frame must also be in memory:")
-  FILE     fi_f          @       _ss     _iwd    .,			///
-	label("Browse...")						///
-	filter("GeoPackage (*.gpkg)|*.gpkg|Shapefile (*.shp)|*.shp|All files (*.*)|*.*")
-  TEXT     tx_layer      _lft    _ms     200     .,			///
-	label("Layer (optional):")
-  EDIT     ed_layer      210     @       100     .,			///
-	label("Layer")							///
-	option(layer)
-  TEXT     tx_id         +110    @       90      .,			///
-	label("identifier:")
-  EDIT     ed_id         +90     @       90      .,			///
-	label("Identifier")						///
-	default(cell_id)						///
-	option(id)
-
-  GROUPBOX gb_n          _lft    _xls    _iwd    70,			///
-	label("Base sample per stratum (the whole frame if no strata)")
-  RADIO    rb_nnum       _ilft   _ss     130     ., first		///
-	label("a number:")						///
-	onclickon(script n_num)
-  EDIT     ed_n          150     @       80      .,			///
+  TEXT     tx_xy         _lft    _top    _iwd    .,			///
+	label("Coordinates of the units, x then y (a frame from rtmframe grid has x y, in metres):")
+  VARLIST  vl_xy         @       _ss     _iwd    .,			///
+	label("Coordinates")						///
+	option(xy)
+  TEXT     tx_n          _lft    _ls     _iwd    .,			///
+	label("Sample size per stratum: a number, or a variable constant within strata:")
+  EDIT     ed_n          @       _ss     200     .,			///
 	label("Sample size")						///
-	numonly							///
 	option(n)
-  RADIO    rb_nvar       _ilft   _ms     130     ., last		///
-	label("a variable:")						///
-	onclickon(script n_var)
-  VARNAME  vn_n          150     @       _vnwd   .,			///
-	label("Sample size variable (constant within strata)")	///
-	option(n)
-
-  TEXT     tx_strata     _lft    +40     200     .,			///
+  TEXT     tx_strata     _lft    _ls     _iwd    .,			///
 	label("Strata (optional):")
-  VARNAME  vn_strata     210     @       _vnwd   .,			///
+  VARLIST  vl_strata     @       _ss     _iwd    .,			///
 	label("Strata")							///
 	option(strata)
-  TEXT     tx_aux        _lft    _ms     200     .,			///
-	label("Probabilities proportional to (optional):")
-  VARNAME  vn_aux        210     @       _vnwd   .,			///
+  TEXT     tx_pps        _lft    _ls     _iwd    .,			///
+	label("Measure of size for PPS (optional; blank = equal probabilities):")
+  VARNAME  vn_pps        @       _ss     _vnwd   .,			///
 	label("Measure of size")					///
-	option(aux)
-
-  GROUPBOX gb_rep        _lft    _xls    _iwd    95,			///
-	label("Replacement sites (UN 2008: substitution is biased; document any use)")
-  TEXT     tx_nover      _ilft   _ss     250     .,			///
-	label("Ordered replacement sites per stratum:")
-  SPINNER  sp_nover      270     @       70      .,			///
-	label("Ordered replacements")					///
-	min(0) max(500) default(0)					///
-	option(nover)
-  TEXT     tx_nnear      _ilft   _ms     250     .,			///
-	label("Nearest-neighbour replacements per base site (0-10):")
-  SPINNER  sp_nnear      270     @       70      .,			///
-	label("Nearest neighbours")					///
-	min(0) max(10) default(0)					///
-	option(nnear)
-  TEXT     tx_mindis     _ilft   _ms     250     .,			///
-	label("Minimum distance between sites, metres (0 = none):")
-  EDIT     ed_mindis     270     @       70      .,			///
-	label("Minimum distance")					///
-	numonly default(0)						///
-	option(mindis)
-
-  TEXT     tx_seed       _lft    +40     250     .,			///
+	option(pps)
+  TEXT     tx_bands      _lft    _ls     250     .,			///
+	label("Horizontal bands of the serpentine order (0 = about sqrt(units)):")
+  SPINNER  sp_bands      260     @       70      .,			///
+	label("Bands")							///
+	min(0) max(1000) default(0)					///
+	option(bands)
+  TEXT     tx_res        _lft    _ls     250     .,			///
+	label("Reserve units per stratum (next in the order; 0 = none; or 'all'):")
+  EDIT     ed_res        260     @       80      .,			///
+	label("Reserve")						///
+	default(0)							///
+	option(reserve)
+  TEXT     tx_seed       _lft    _ls     250     .,			///
 	label("Seed (blank: chosen at random and reported):")
-  EDIT     ed_seed       270     @       120     .,			///
+  EDIT     ed_seed       260     @       120     .,			///
 	label("Seed")							///
 	numonly							///
 	option(seed)
-  TEXT     tx_gen        _lft    _ms     250     .,			///
-	label("Prefix of the new variables (_sel _pi _w _order _reserve _near _site):")
-  EDIT     ed_gen        270     @       120     .,			///
+  TEXT     tx_id         _lft    _ls     250     .,			///
+	label("Unit identifier (optional, for the export):")
+  VARLIST  vl_id         260     @       120     .,			///
+	label("Identifier")						///
+	option(id)
+  TEXT     tx_gen        _lft    _ls     250     .,			///
+	label("Prefix of the new variables (_sel _pi _w _order _reserve):")
+  EDIT     ed_gen        260     @       120     .,			///
 	label("Prefix")							///
-	default(grts)							///
+	default(g)							///
 	option(generate)
-  TEXT     tx_save       _lft    _ms     _iwd    .,			///
-	label("Save the selected sites as a GeoPackage (optional):")
-  FILE     fi_save       @       _ss     _iwd    .,			///
-	label("Browse...")						///
-	filter("GeoPackage (*.gpkg)|*.gpkg")				///
-	save								///
-	option(saving)
-  CHECKBOX ck_replace    _lft    _ms     _iwd    .,			///
-	label("Replace the new variables if they exist")		///
+  CHECKBOX ck_replace    _lft    _ms     200     .,			///
+	label("Replace them if they exist")				///
 	option(replace)
+  TEXT     tx_note       _lft    _ls     _iwd    .,			///
+	label("Systematic selection along a serpentine geographic order (UN 2008 paras 77-79). Not GRTS: see the help.")
 END
 
-SCRIPT n_num
-BEGIN
-	main.ed_n.enable
-	main.vn_n.disable
-END
-
-SCRIPT n_var
-BEGIN
-	main.ed_n.disable
-	main.vn_n.enable
-END
-
-SCRIPT POSTINIT
-BEGIN
-	script n_num
-END
+INCLUDE ifin
 
 PROGRAM command
 BEGIN
-	put "rtmsample grid using "
-	require main.fi_f
-	put main.fi_f
+	put "rtmsample grid "
+	INCLUDE _ifin_pr
 	beginoptions
-		if main.rb_nnum {
-			require main.ed_n
-			optionarg main.ed_n
-		}
-		else {
-			require main.vn_n
-			optionarg main.vn_n
-		}
+		require main.vl_xy
+		optionarg main.vl_xy
+		require main.ed_n
+		optionarg main.ed_n
 		require main.ed_gen
 		optionarg main.ed_gen
-		optionarg main.vn_strata
-		optionarg main.vn_aux
-		if !main.sp_nover.isdefault() {
-			optionarg main.sp_nover
+		optionarg main.vl_strata
+		optionarg main.vn_pps
+		if !main.sp_bands.isdefault() {
+			optionarg main.sp_bands
 		}
-		if !main.sp_nnear.isdefault() {
-			optionarg main.sp_nnear
-		}
-		if !main.ed_mindis.isdefault() {
-			optionarg main.ed_mindis
+		if !main.ed_res.isdefault() {
+			optionarg main.ed_res
 		}
 		optionarg main.ed_seed
-		if !main.ed_id.isdefault() {
-			optionarg main.ed_id
-		}
-		optionarg main.ed_layer
-		optionarg main.fi_save
+		optionarg main.vl_id
 		option main.ck_replace
 	endoptions
 END

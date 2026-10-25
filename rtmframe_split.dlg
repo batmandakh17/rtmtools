@@ -1,82 +1,62 @@
 /*
-  rtmframe_split.dlg -- rtmtools 0.3.0 (24oct2026)
-  Dialog for: rtmframe split (needs R with sf and terra)
+  rtmframe_split.dlg -- rtmtools 0.5.0 (25oct2026)
+  Dialog for: rtmframe split (split large grid cells into parts; no R)
 */
 
 VERSION 16.0
 
 INCLUDE _std_medium
-DEFINE _dlght 360
+DEFINE _dlght 300
 INCLUDE header
 
 HELP hlp1, view("help rtmframe##split")
 RESET res1
 
-DIALOG main, label("rtmframe split - Split large cells into segments (needs R)") tabtitle("Main")
+DIALOG main, label("rtmframe split - Split large cells into parts") tabtitle("Main")
 BEGIN
-  TEXT     tx_f          _lft    _top    _iwd    .,			///
-	label("Grid frame file (GeoPackage written by rtmframe grid):")
-  FILE     fi_f          @       _ss     _iwd    .,			///
-	label("Browse...")						///
-	filter("GeoPackage (*.gpkg)|*.gpkg|All files (*.*)|*.*")
-  TEXT     tx_layer      _lft    _ms     200     .,			///
-	label("Layer (default cells):")
-  EDIT     ed_layer      210     @       120     .,			///
-	label("Layer")							///
-	option(layer)
-  TEXT     tx_id         _lft    _ms     200     .,			///
-	label("Cell identifier column:")
-  EDIT     ed_id         210     @       120     .,			///
-	label("Identifier")						///
-	default(cell_id)						///
-	option(id)
-  TEXT     tx_cells      _lft    _ls     _iwd    .,			///
-	label("Cells to split (identifiers separated by spaces):")
+  TEXT     tx_cells      _lft    _top    _iwd    .,			///
+	label("Cells to split (cell_id values, separated by spaces); the grid frame must be in memory:")
   EDIT     ed_cells      @       _ss     _iwd    .,			///
 	label("Cells")							///
 	option(cells)
-  TEXT     tx_parts      _lft    _ms     250     .,			///
-	label("Parts per side (2 = 2 x 2, 3 = 3 x 3, 4 = 4 x 4):")
-  SPINNER  sp_parts      270     @       70      .,			///
+  TEXT     tx_parts      _lft    _ls     250     .,			///
+	label("Parts per side (2 = 2 x 2, 3 = 3 x 3, ...):")
+  SPINNER  sp_parts      260     @       70      .,			///
 	label("Parts")							///
-	min(2) max(4) default(2)					///
+	min(2) max(10) default(2)					///
 	option(parts)
-  TEXT     tx_r          _lft    _ms     _iwd    .,			///
-	label("Population raster (GeoTIFF) for the size of each part (optional):")
-  FILE     fi_r          @       _ss     _iwd    .,			///
+  TEXT     tx_pix        _lft    _ls     _iwd    .,			///
+	label("Pixel table written by rtmframe grid, savingpixels():")
+  FILE     fi_pix        @       _ss     _iwd    .,			///
 	label("Browse...")						///
-	filter("GeoTIFF (*.tif)|*.tif;*.tiff|All files (*.*)|*.*")	///
-	option(raster)
-  TEXT     tx_save       _lft    _ls     _iwd    .,			///
-	label("Save the parts as a GeoPackage (optional):")
-  FILE     fi_save       @       _ss     _iwd    .,			///
+	filter("Stata data (*.dta)|*.dta")				///
+	option(pixels)
+  TEXT     tx_sav        _lft    _ls     _iwd    .,			///
+	label("Save the parts to (optional):")
+  FILE     fi_sav        @       _ss     _iwd    .,			///
 	label("Browse...")						///
-	filter("GeoPackage (*.gpkg)|*.gpkg")				///
 	save								///
+	filter("Stata data (*.dta)|*.dta")				///
 	option(saving)
-  CHECKBOX ck_clear      _lft    _ms     _iwd    .,			///
-	label("Replace the data in memory with the list of parts (clear)")	///
-	default(1)							///
+  CHECKBOX ck_replace    _lft    _ls     300     .,			///
+	label("Replace the file if it exists")				///
+	option(replace)
+  CHECKBOX ck_clear      _lft    _ms     300     .,			///
+	label("Put the parts in memory in place of the frame")		///
 	option(clear)
 END
 
 PROGRAM command
 BEGIN
-	put "rtmframe split using "
-	require main.fi_f
-	put main.fi_f
+	put "rtmframe split, "
 	beginoptions
 		require main.ed_cells
 		optionarg main.ed_cells
-		if !main.sp_parts.isdefault() {
-			optionarg main.sp_parts
-		}
-		optionarg main.fi_r
-		if !main.ed_id.isdefault() {
-			optionarg main.ed_id
-		}
-		optionarg main.ed_layer
-		optionarg main.fi_save
+		optionarg main.sp_parts
+		require main.fi_pix
+		optionarg main.fi_pix
+		optionarg main.fi_sav
+		option main.ck_replace
 		option main.ck_clear
 	endoptions
 END

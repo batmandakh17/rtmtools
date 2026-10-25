@@ -27,10 +27,10 @@ from openpyxl import load_workbook
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TEMPLATE = os.path.join(ROOT, "rtm_display.xlsx")
-ALLOWED = {"IF", "IFERROR", "INDEX", "MATCH", "COUNTIF", "COUNTA"}
+ALLOWED = {"IF", "IFERROR", "INDEX", "MATCH", "COUNTIF", "COUNTA", "NA"}
 NOT_IN = "not in this export"
 FUNC_RE = re.compile(r"([A-Z][A-Z0-9_.]*)\s*\(")
-DISPLAY_SHEETS = {"Weights"}
+DISPLAY_SHEETS = {"Weights", "Sampling", "Frame", "Listing"}
 
 
 def formula_inventory(path):
@@ -159,8 +159,10 @@ def check_run(run):
     if copy is None:
         print("  displayed values not checked (Excel not available); the formula inventory and the data sheets were checked")
         return ok
-    wv = load_workbook(copy, data_only=True)["Weights"]
-    wf = load_workbook(xl)["Weights"]
+    manifest0 = {k: v for k, v in read_csv(os.path.join(run, "manifest.csv"))[1]}
+    sheetname = {"weights": "Weights", "sampling": "Sampling", "frame": "Frame", "listing": "Listing"}.get(manifest0.get("workflow", ""), "Weights")
+    wv = load_workbook(copy, data_only=True)[sheetname]
+    wf = load_workbook(xl)[sheetname]
     mrows = read_csv(os.path.join(run, "manifest.csv"))[1]
     manifest = {k: v for k, v in mrows}
     ncheck = 0

@@ -1,4 +1,4 @@
-*! rtmsample_allocate.ado  version 0.2.0  24oct2026  rtmtools
+*! rtmsample_allocate.ado  version 0.5.0  25oct2026  rtmtools
 *! Allocation of a total sample n across strata: proportional (n_h = n N_h/N), equal (n/H),
 *! Neyman (n N_h S_h / sum N_k S_k) or power allocation (n N_h^q / sum N_k^q, Bankier 1988), with a
 *! minimum and a maximum per stratum (strata fixed at the bound, the rest re-allocated, the LSMS
@@ -230,6 +230,12 @@ program define rtmsample_allocate, rclass
     }
     quietly count if fixed
     local nfixed = r(N)
+    * the export table: one row per stratum (schema rtm-export-1.0)
+    capture frame drop _rtmx_al
+    frame create _rtmx_al str80 stratum double(n_units size_sum share n_planned n_min n_max n_final sampling_fraction)
+    forvalues i = 1/`H' {
+        frame post _rtmx_al ("`=usubstr(lab[`i'], 1, 80)'") (Uh[`i']) (Nh[`i']) (share[`i']) (a0[`i']) (cond(`min' > 0, `min', .)) (cond(`max' > 0, `max', .)) (nh[`i']) (fh[`i'])
+    }
     tempfile T
     tempvar nhv
     keep `grp' nh
@@ -256,4 +262,11 @@ program define rtmsample_allocate, rclass
     local cmd `"rtmsample allocate `0'"'
     return local cmdline `"`cmd'"'
     if "`generate'" != "" _rtm_util record, step(allocate) cmd(`"`cmd'"') var(`generate')
+    capture _rtm_export table, name(allocation) frame(_rtmx_al)
+    capture _rtm_export setting, key(method) value("`mdesc'") source("UN 2008 section 3.4.1 paras 68-70; HFPS Vol. 2 p. 5 (Neyman); Bankier 1988 (power)")
+    capture _rtm_export setting, key(n) value("`n'")
+    capture _rtm_export setting, key(strata) value("`strata'")
+    if "`size'" != "" capture _rtm_export setting, key(size) value("`size'")
+    if `min' > 0 | `max' > 0 capture _rtm_export setting, key(bounds) value("min `min' max `max'") source("GM 1996 pp. 78-79 (domains boosted to a minimum)")
+    if "`generate'" != "" capture _rtm_export setting, key(generate) value("`generate'")
 end

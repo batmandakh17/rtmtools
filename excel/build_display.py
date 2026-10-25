@@ -10,7 +10,7 @@ Run from the package folder:  python3 excel/build_display.py   -> writes rtm_dis
 """
 import os
 from openpyxl import Workbook
-from openpyxl.chart import BarChart, Reference
+from openpyxl.chart import BarChart, Reference, ScatterChart, Series
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
@@ -34,8 +34,9 @@ TABLES = {
     "calibration_fit": ["constraint", "target", "before", "after", "diff", "rel_diff", "converged", "iterations"],
     "weight_units": ["unit_id", "stratum", "psu", "flag"],
     "flags": ["table", "unit_id", "stage", "value", "reason"],
+    "replacements": ["unit_id", "candidate_id", "rank", "distance", "stratum", "adjacency"],
 }
-ALLOWED_FUNCTIONS = ["IF", "IFERROR", "INDEX", "MATCH", "COUNTIF", "COUNTA"]
+ALLOWED_FUNCTIONS = ["IF", "IFERROR", "INDEX", "MATCH", "COUNTIF", "COUNTA", "NA"]
 NOT_IN = "not in this export"
 
 HEAD = Font(bold=True, size=14)
@@ -63,6 +64,188 @@ def ref_block(ws, top, left, sheet, cols, nrows, fmt=None):
             if fmt and j in fmt:
                 c.number_format = fmt[j]
     return top + 1 + nrows
+
+
+def run_block(ws, r):
+    ws.cell(row=r, column=1, value="Run").font = SUB
+    for key, label in [("run_id", "Run id"), ("step", "Step"), ("started", "Started"), ("status", "Status"),
+                       ("source", "Source (ado or do-file)"), ("input_file", "Input file"), ("input_rows", "Input rows"), ("command", "Command")]:
+        r += 1
+        ws.cell(row=r, column=1, value=label)
+        ws.cell(row=r, column=2, value=manifest_lookup(key)).alignment = Alignment(horizontal="left")
+    return r
+
+
+def keys_block(ws, r, title, keys):
+    r += 2
+    ws.cell(row=r, column=1, value=title).font = SUB
+    for key, label in keys:
+        r += 1
+        ws.cell(row=r, column=1, value=label)
+        c = ws.cell(row=r, column=2, value=manifest_lookup(key))
+        c.number_format = "#,##0.000"
+        c.alignment = Alignment(horizontal="right")
+    return r
+
+
+def bar(ws, title, col_idx, top, nrows, anchor, cat_col=1, ytitle=None):
+    ch = BarChart()
+    ch.type = "col"
+    ch.title = title
+    if ytitle:
+        ch.y_axis.title = ytitle
+    ch.add_data(Reference(ws, min_col=col_idx, min_row=top, max_row=top + nrows), titles_from_data=True)
+    ch.set_categories(Reference(ws, min_col=cat_col, min_row=top + 1, max_row=top + nrows))
+    ch.height, ch.width = 7, 16
+    ch.legend = None
+    ws.add_chart(ch, anchor)
+
+
+def pair_bar(ws, title, col_a, col_b, top, nrows, anchor, cat_col=1):
+    ch = BarChart()
+    ch.type = "col"
+    ch.title = title
+    ch.add_data(Reference(ws, min_col=col_a, min_row=top, max_row=top + nrows), titles_from_data=True)
+    ch.add_data(Reference(ws, min_col=col_b, min_row=top, max_row=top + nrows), titles_from_data=True)
+    ch.set_categories(Reference(ws, min_col=cat_col, min_row=top + 1, max_row=top + nrows))
+    ch.height, ch.width = 7, 16
+    ws.add_chart(ch, anchor)
+
+
+def scatter_helpers(ws, top, left, sheet, xcol, ycol, flagcol, flagval, label, nrows):
+    """Two helper columns: the x and y of the rows whose flag equals flagval, NA() otherwise (NA keeps
+    a point off a scatter chart; it computes nothing)."""
+    ws.cell(row=top, column=left, value=f"{label}: x").font = SUB
+    ws.cell(row=top, column=left + 1, value=f"{label}: y").font = SUB
+    for i in range(nrows):
+        rr = i + 2
+        cond = f"{sheet}!{flagcol}{rr}={flagval}" if flagval is not None else f"{sheet}!{xcol}{rr}<>\"\""
+        ws.cell(row=top + 1 + i, column=left, value=f'=IF({cond},{sheet}!{xcol}{rr},NA())')
+        ws.cell(row=top + 1 + i, column=left + 1, value=f'=IF({cond},{sheet}!{ycol}{rr},NA())')
+
+
+def scatter(ws, title, series, anchor):
+    ch = ScatterChart()
+    ch.title = title
+    ch.style = 13
+    for (xref, yref, name) in series:
+        s = Series(yref, xref, title=name)
+        s.marker.symbol = "circle"
+        s.marker.size = 5
+        s.graphicalProperties.line.noFill = True
+        ch.series.append(s)
+    ch.height, ch.width = 10, 14
+    ws.add_chart(ch, anchor)
+
+
+def build_sampling(wb):
+    w = wb.create_sheet("Sampling")
+    w.column_dimensions["A"].width = 30
+    for col in "BCDEFGHIJKLMNOPQRS":
+        w.column_dimensions[col].width = 13
+    w["A1"] = "Sampling: what Stata exported for this run"
+    w["A1"].font = HEAD
+    w["A2"] = "Sizes, allocation and the draw as computed in Stata; nothing is recalculated here (see Notes)."
+    w["A2"].font = MUTED
+    r = run_block(w, 4)
+    r = keys_block(w, r, "Key numbers (r() results of the command)", [
+        ("summary_n_domain", "Households per domain (size)"), ("summary_n_total", "Households in all domains"), ("summary_n_srs", "Interviews, simple random sample"),
+        ("summary_f_attrition", "Attrition reserve factor"), ("summary_n", "Total to allocate"), ("summary_n_rounded", "Allocated after rounding"),
+        ("summary_N_frame", "Frame units"), ("summary_n_selected", "Selected units"), ("summary_n_reserve", "Reserve units"), ("summary_n_certainty", "Certainty units"),
+        ("summary_H", "Strata"), ("summary_seed", "Seed"), ("summary_bands", "Serpentine bands"), ("summary_n_numbers", "Numbers generated (RDD)")])
+    r += 2
+    w.cell(row=r, column=1, value="Sample size per domain (size.csv)").font = SUB
+    r += 1
+    r = ref_block(w, r, 1, "size", TABLES["size"], 6, {1: "0.000", 2: "0.0000", 3: "0.00", 4: "0.00", 5: "0.000", 6: "0", 7: "#,##0.0", 8: "#,##0"})
+    r += 1
+    w.cell(row=r, column=1, value="Allocation across strata (allocation.csv): planned against final").font = SUB
+    r += 1
+    top = r
+    r = ref_block(w, r, 1, "allocation", TABLES["allocation"], 40, {1: "#,##0", 2: "#,##0", 3: "0.000", 4: "0.00", 5: "0", 6: "0", 7: "#,##0", 8: "0.0000"})
+    pair_bar(w, "Planned and final allocation by stratum (allocation.csv)", 5, 8, top, 40, f"K{top}")
+    r += 1
+    w.cell(row=r, column=1, value="Draw by stratum (draw_summary.csv)").font = SUB
+    r += 1
+    top = r
+    r = ref_block(w, r, 1, "draw_summary", TABLES["draw_summary"], 40, {1: "#,##0", 2: "#,##0", 3: "#,##0", 4: "0.0000", 5: "0.0000", 6: "#,##0.0", 7: "#,##0.0"})
+    pair_bar(w, "Inclusion probability, min and max by stratum (draw_summary.csv)", 5, 6, top, 40, f"K{top}")
+    r += 1
+    w.cell(row=r, column=1, value="Selected and reserve units (selection.csv, first 60 rows; the file holds all)").font = SUB
+    r += 1
+    r = ref_block(w, r, 1, "selection", TABLES["selection"], 60, {2: "#,##0", 3: "0", 4: "0.000000", 5: "#,##0", 6: "#,##0.0", 7: "0", 8: "0", 9: "0", 10: "0.0000", 11: "#,##0.00", 12: "#,##0", 13: "#,##0"})
+    # the map: selected units against the frame, from the exported coordinates (helper columns U:X)
+    scatter_helpers(w, 4, 21, "selection", "M", "N", "H", 1, "selected", 2000)
+    scatter_helpers(w, 4, 23, "selection", "M", "N", "H", 0, "not selected", 2000)
+    scatter(w, "Selected units (dark) and the rest of the frame (selection.csv x, y)", [
+        (Reference(w, min_col=23, min_row=5, max_row=2004), Reference(w, min_col=24, min_row=5, max_row=2004), "frame"),
+        (Reference(w, min_col=21, min_row=5, max_row=2004), Reference(w, min_col=22, min_row=5, max_row=2004), "selected")], "K70")
+    w.freeze_panes = "A4"
+
+
+def build_frame(wb):
+    w = wb.create_sheet("Frame")
+    w.column_dimensions["A"].width = 30
+    for col in "BCDEFGHIJKLMNOPQRS":
+        w.column_dimensions[col].width = 13
+    w["A1"] = "Frame: what Stata exported for this run"
+    w["A1"].font = HEAD
+    w["A2"] = "List-frame checks or the grid frame as computed in Stata; nothing is recalculated here (see Notes)."
+    w["A2"].font = MUTED
+    r = run_block(w, 4)
+    r = keys_block(w, r, "Key numbers (r() results of the command)", [
+        ("summary_N", "Units"), ("summary_N_ok", "Usable units"), ("summary_n_dup", "Duplicate identifiers"), ("summary_n_badsize", "Bad sizes"),
+        ("summary_n_small", "Small units or cells"), ("summary_n_large", "Large units"), ("summary_n_excluded", "Excluded"), ("summary_H", "Strata"),
+        ("summary_N_cells", "Grid cells"), ("summary_n_polygons", "Boundary polygons"), ("summary_n_straddle", "Cells straddling a boundary"),
+        ("summary_pop_inside", "Population inside the boundaries"), ("summary_pop_outside", "Population outside"), ("summary_pixels_outside", "Pixels outside"),
+        ("summary_cellsize", "Cell size (m)"), ("summary_pixelsize", "Pixel size (m)"), ("summary_n_with_candidates", "Cells with replacement candidates"), ("summary_n_parts", "Parts after a split")])
+    r += 2
+    w.cell(row=r, column=1, value="Summary by stratum (frame_summary.csv)").font = SUB
+    r += 1
+    top = r
+    r = ref_block(w, r, 1, "frame_summary", TABLES["frame_summary"], 40, {1: "#,##0", 2: "#,##0", 3: "#,##0", 4: "#,##0", 5: "#,##0", 6: "#,##0"})
+    bar(w, "Size (population or households) by stratum (frame_summary.csv)", 3, top, 40, f"J{top}")
+    bar(w, "Flagged units by stratum (frame_summary.csv)", 7, top, 40, f"J{top + 15}")
+    r += 1
+    w.cell(row=r, column=1, value="Replacement candidates (replacements.csv)").font = SUB
+    r += 1
+    r = ref_block(w, r, 1, "replacements", TABLES["replacements"], 30, {2: "0", 3: "#,##0"})
+    r += 1
+    w.cell(row=r, column=1, value="Units or cells (frame_units.csv, first 60 rows; the file holds all)").font = SUB
+    r += 1
+    r = ref_block(w, r, 1, "frame_units", TABLES["frame_units"], 60, {3: "#,##0", 4: "#,##0", 5: "#,##0"})
+    scatter_helpers(w, 4, 21, "frame_units", "E", "F", None, None, "units", 2000)
+    scatter(w, "Units or cells of the frame (frame_units.csv x, y)", [
+        (Reference(w, min_col=21, min_row=5, max_row=2004), Reference(w, min_col=22, min_row=5, max_row=2004), "units")], "J62")
+    w.freeze_panes = "A4"
+
+
+def build_listing(wb):
+    w = wb.create_sheet("Listing")
+    w.column_dimensions["A"].width = 44
+    for col in "BCDEFGHIJKLMNOPQRS":
+        w.column_dimensions[col].width = 13
+    w["A1"] = "Listing: what Stata exported for this run"
+    w["A1"].font = HEAD
+    w["A2"] = "The listing forms and the completed listing's checks as computed in Stata; nothing is recalculated here (see Notes)."
+    w["A2"].font = MUTED
+    r = run_block(w, 4)
+    r = keys_block(w, r, "Key numbers (r() results of the command)", [
+        ("summary_N_areas", "Selected areas"), ("summary_n_segmented", "Areas segmented"), ("summary_N_rows", "Rows in the listing"),
+        ("summary_n_returned", "Areas returned"), ("summary_n_not_returned", "Areas not returned"), ("summary_n_not_selected", "Households in areas not selected"),
+        ("summary_n_duplicates", "Duplicate rows"), ("summary_n_under", "Under-listed areas"), ("summary_n_over", "Over-listed areas"), ("summary_N_frame", "Eligible households in the frame")])
+    r += 2
+    w.cell(row=r, column=1, value="Checks (listing_checks.csv)").font = SUB
+    r += 1
+    r = ref_block(w, r, 1, "listing_checks", TABLES["listing_checks"], 12, {1: "#,##0"})
+    r += 1
+    w.cell(row=r, column=1, value="Areas (listing_areas.csv, first 100 rows)").font = SUB
+    r += 1
+    top = r
+    r = ref_block(w, r, 1, "listing_areas", TABLES["listing_areas"], 100, {2: "#,##0", 3: "#,##0", 4: "#,##0", 5: "0.000", 6: "0", 7: "0"})
+    scatter_helpers(w, 4, 21, "listing_areas", "C", "D", None, None, "areas", 500)
+    scatter(w, "Listed against expected households by area (listing_areas.csv)", [
+        (Reference(w, min_col=21, min_row=5, max_row=504), Reference(w, min_col=22, min_row=5, max_row=504), "areas")], f"K{top}")
+    w.freeze_panes = "A4"
 
 
 def build():
@@ -193,18 +376,24 @@ def build():
     r = ref_block(w, r, 1, "flags", TABLES["flags"], 40, {3: "#,##0.000"})
     w.freeze_panes = "A4"
 
+    build_sampling(wb)
+    build_frame(wb)
+    build_listing(wb)
+
     # ---- Notes sheet ----
     n = wb.create_sheet("Notes")
     n.column_dimensions["A"].width = 120
     lines = [
         ("rtmtools display workbook (schema rtm-export-1.0)", HEAD),
-        ("This workbook displays what the Stata commands exported for one run. Stata copies this template into the run folder and fills the sheet", None),
+        ("This workbook displays what the Stata commands exported for one run (sheets Weights, Sampling, Frame, Listing; use the one of the run's", None),
+        ("workflow). Stata copies this template into the run folder and fills the sheet", None),
         ("'manifest' and one sheet per export table (weight_stages, response_classes, calibration_fit, weight_groups, flags, ...) from the same", None),
         ("CSV files that the dashboard reads. Nothing in this workbook recalculates a statistic: every value on the Weights sheet is a reference", None),
         ("or a lookup into those sheets, and every chart plots a column of them.", None),
         ("", None),
         ("Formulas used, the complete list: " + ", ".join(ALLOWED_FUNCTIONS) + ". IF only blanks out empty rows; IFERROR, INDEX and MATCH", SUB),
-        ("fetch a value from the manifest; COUNTIF and COUNTA count exported rows. No division, multiplication, power, RAND, PERCENTILE, STDEV, Solver or", None),
+        ("fetch a value from the manifest; COUNTIF and COUNTA count exported rows; NA() keeps a point off a scatter chart (the map helper", None),
+        ("columns U to X of the Sampling, Frame and Listing sheets). No division, multiplication, power, RAND, PERCENTILE, STDEV, Solver or", None),
         ("Analysis ToolPak anywhere. tests/check_display.py reads every formula and fails on any other function.", None),
         ("", None),
         ("Rounding: values are stored exactly as exported; number formats show three decimals (counts as integers).", None),

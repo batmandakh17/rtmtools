@@ -1,0 +1,77 @@
+/*
+  rtmlist_prepare.dlg -- rtmtools 0.5.0 (25oct2026)
+  Dialog for: rtmlist prepare (listing workbook for the selected areas, with segmentation)
+*/
+
+VERSION 16.0
+
+INCLUDE _std_medium
+DEFINE _dlght 360
+INCLUDE header
+
+HELP hlp1, view("help rtmlist##prepare")
+RESET res1
+
+DIALOG main, label("rtmlist prepare - Listing forms for the selected areas") tabtitle("Main")
+BEGIN
+  TEXT     tx_id         _lft    _top    _iwd    .,			///
+	label("Area identifier (the data in memory are the selected areas, one row each):")
+  VARNAME  vn_id         @       _ss     _vnwd   .,			///
+	label("Area id")						///
+	option(id)
+  TEXT     tx_exp        _lft    _ls     _iwd    .,			///
+	label("Expected number of households in the area, from the frame (optional; needed for segmentation):")
+  VARNAME  vn_exp        @       _ss     _vnwd   .,			///
+	label("Expected households")					///
+	option(expected)
+  TEXT     tx_str        _lft    _ls     _iwd    .,			///
+	label("Strata (optional, shown on the Areas sheet):")
+  VARLIST  vl_str        @       _ss     _iwd    .,			///
+	label("Strata")							///
+	option(strata)
+  TEXT     tx_seg        _lft    _ls     250     .,			///
+	label("Segment size in households (0 = no segmentation; UN 2008: standard segments):")
+  EDIT     ed_seg        260     @       80      .,			///
+	label("Segment size")						///
+	numonly default(0)						///
+	option(segmentsize)
+  TEXT     tx_seed       _lft    _ls     250     .,			///
+	label("Seed for the segment choice (blank: random, reported):")
+  EDIT     ed_seed       260     @       120     .,			///
+	label("Seed")							///
+	numonly							///
+	option(seed)
+  TEXT     tx_sav        _lft    _ls     _iwd    .,			///
+	label("Listing workbook to write (.xlsx):")
+  FILE     fi_sav        @       _ss     _iwd    .,			///
+	label("Browse...")						///
+	save								///
+	filter("Excel workbook (*.xlsx)|*.xlsx")			///
+	option(saving)
+  CHECKBOX ck_replace    _lft    _ls     300     .,			///
+	label("Replace the workbook if it exists")			///
+	option(replace)
+  TEXT     tx_note       _lft    _ls     _iwd    .,			///
+	label("The forms prescribe no names: structure and household numbers, a location description, eligibility and a phone flag.")
+END
+
+INCLUDE ifin
+
+PROGRAM command
+BEGIN
+	put "rtmlist prepare "
+	INCLUDE _ifin_pr
+	beginoptions
+		require main.vn_id
+		optionarg main.vn_id
+		optionarg main.vn_exp
+		optionarg main.vl_str
+		if !main.ed_seg.isdefault() {
+			optionarg main.ed_seg
+		}
+		optionarg main.ed_seed
+		require main.fi_sav
+		optionarg main.fi_sav
+		option main.ck_replace
+	endoptions
+END

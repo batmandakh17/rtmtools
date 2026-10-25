@@ -1,0 +1,113 @@
+/*
+  rtmlist_import.dlg -- rtmtools 0.5.0 (25oct2026)
+  Dialog for: rtmlist import (the completed listing, checked, as the second-stage frame)
+*/
+
+VERSION 16.0
+
+INCLUDE _std_medium
+DEFINE _dlght 440
+INCLUDE header
+
+HELP hlp1, view("help rtmlist##import")
+RESET res1
+
+DIALOG main, label("rtmlist import - Read the completed listing and build the household frame") tabtitle("Main")
+BEGIN
+  TEXT     tx_file       _lft    _top    _iwd    .,			///
+	label("Completed listing: a Stata, CSV or Excel file with one row per listed household:")
+  FILE     fi_file       @       _ss     _iwd    .,			///
+	label("Browse...")						///
+	filter("Data (*.dta;*.csv;*.xlsx)|*.dta;*.csv;*.xlsx|All files (*.*)|*.*")
+  TEXT     tx_sheet      _lft    _ls     250     .,			///
+	label("Sheet name (Excel files; blank = the first sheet):")
+  EDIT     ed_sheet      260     @       150     .,			///
+	label("Sheet")							///
+	option(sheet)
+  TEXT     tx_id         _lft    _ls     _iwd    .,			///
+	label("Area identifier in the data in memory (the selected areas):")
+  VARNAME  vn_id         @       _ss     _vnwd   .,			///
+	label("Area id")						///
+	option(id)
+  TEXT     tx_exp        _lft    _ls     _iwd    .,			///
+	label("Expected number of households (optional; enables the listed/expected check):")
+  VARNAME  vn_exp        @       _ss     _vnwd   .,			///
+	label("Expected households")					///
+	option(expected)
+  TEXT     tx_cols       _lft    _ls     _iwd    .,			///
+	label("Column names in the listing file (change if yours differ):")
+  TEXT     tx_av         _lft    _ss     120     .,			///
+	label("area:")
+  EDIT     ed_av         +60     @       100     .,			///
+	label("Area column")						///
+	default(area_id)						///
+	option(areavar)
+  TEXT     tx_sv         +110    @       80      .,			///
+	label("structure:")
+  EDIT     ed_sv         +70     @       110     .,			///
+	label("Structure column")					///
+	default(structure_no)						///
+	option(structure)
+  TEXT     tx_hv         _lft    _ms     120     .,			///
+	label("household:")
+  EDIT     ed_hv         +60     @       100     .,			///
+	label("Household column")					///
+	default(household_no)						///
+	option(household)
+  TEXT     tx_ev         +110    @       80      .,			///
+	label("eligible:")
+  EDIT     ed_ev         +70     @       110     .,			///
+	label("Eligible column")					///
+	default(eligible)						///
+	option(eligible)
+  TEXT     tx_ratio      _lft    _ls     _iwd    .,			///
+	label("Flag areas whose listed/expected ratio is outside (low high; no cited default):")
+  EDIT     ed_ratio      @       _ss     120     .,			///
+	label("Ratio bounds")						///
+	default("0.5 2")						///
+	option(ratio)
+  TEXT     tx_sav        _lft    _ls     _iwd    .,			///
+	label("Save the household frame to (optional):")
+  FILE     fi_sav        @       _ss     _iwd    .,			///
+	label("Browse...")						///
+	save								///
+	filter("Stata data (*.dta)|*.dta")				///
+	option(saving)
+  CHECKBOX ck_replace    _lft    _ls     200     .,			///
+	label("Replace the file if it exists")				///
+	option(replace)
+  CHECKBOX ck_clear      +210    @       300     .,			///
+	label("Put the household frame in memory (replaces the areas)")	///
+	option(clear)
+END
+
+PROGRAM command
+BEGIN
+	put "rtmlist import using "
+	require main.fi_file
+	put `"""' main.fi_file `"""'
+	beginoptions
+		require main.vn_id
+		optionarg main.vn_id
+		optionarg main.vn_exp
+		optionarg main.ed_sheet
+		if !main.ed_av.isdefault() {
+			optionarg main.ed_av
+		}
+		if !main.ed_sv.isdefault() {
+			optionarg main.ed_sv
+		}
+		if !main.ed_hv.isdefault() {
+			optionarg main.ed_hv
+		}
+		if !main.ed_ev.isdefault() {
+			optionarg main.ed_ev
+		}
+		if !main.ed_ratio.isdefault() {
+			optionarg main.ed_ratio
+		}
+		optionarg main.fi_sav
+		option main.ck_replace
+		option main.ck_clear
+	endoptions
+END

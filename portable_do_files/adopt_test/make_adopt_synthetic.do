@@ -100,3 +100,30 @@ order variable level total
 label values level .
 save adopt_totals_long.dta, replace
 di as text "adopt_test data written: adopt_baseline.dta, adopt_round1.dta, adopt_totals_long.dta"
+
+* ---- the area frame of the adopting program and a completed listing of its selected areas ----
+use "`frame'", clear
+rename (ea n_hh_census ea_sel p_ea) (ea_code hh_count selected prob_ea)
+label var ea_code "Enumeration area code"
+label var hh_count "Households in the area (census)"
+label var selected "Area selected into the baseline"
+label var prob_ea "First-stage probability"
+keep ea_code zone hh_count selected prob_ea
+save adopt_frame.dta, replace
+keep if selected
+set seed 20261030
+gen int listed_n = round(hh_count * (0.85 + 0.3 * runiform()))
+sort ea_code
+drop in 3                                          // one area not returned
+expand listed_n
+bysort ea_code: gen int bldg = _n
+gen byte hh = 1
+gen byte elig = (runiform() < 0.96)
+rename ea_code area
+keep area bldg hh elig
+label var area "Enumeration area code (listing)"
+label var bldg "Building number"
+label var hh "Household number in the building"
+label var elig "Eligible household (1/0)"
+save adopt_listing.dta, replace
+di as text "adopt_test frame and listing written: adopt_frame.dta, adopt_listing.dta"

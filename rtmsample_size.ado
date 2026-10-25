@@ -1,4 +1,4 @@
-*! rtmsample_size.ado  version 0.2.0  24oct2026  rtmtools
+*! rtmsample_size.ado  version 0.5.0  25oct2026  rtmtools
 *! Sample size per domain, for a level or for a change, with the design effect, the nonresponse
 *! multiplier, the panel attrition reserve and the number of domains.
 *! Level: closed form n = z^2 p(1-p)/e^2 (proportion) or z^2 s^2/e^2 (mean), UN 2008 formula 3.7
@@ -194,4 +194,20 @@ program define rtmsample_size, rclass
     return local case = cond(`change' == 0, "level", "change")
     return local method "`how'"
     return local cmdline `"rtmsample size `0'"'
+
+    * ---- export (schema rtm-export-1.0): the size table and the settings ----
+    capture frame drop _rtmx_sz
+    frame create _rtmx_sz str32 domain double(p margin deff nonresponse attrition rounds n_effective n_final)
+    frame post _rtmx_sz ("each domain") (cond("`kind'" == "proportion", `p', .)) (`e') (`deff') (`nonresponse') (`attrition') (`rounds') (`n_srs') (`n_dom')
+    if `domains' > 1 frame post _rtmx_sz ("all `domains' domains") (cond("`kind'" == "proportion", `p', .)) (`e') (`deff') (`nonresponse') (`attrition') (`rounds') (`n_srs' * `domains') (`n_total')
+    capture _rtm_export table, name(size) frame(_rtmx_sz)
+    capture _rtm_export setting, key(case) value("`=cond(`change' == 0, "level", "change")'") source("UN 2008 section 3.3 formula 3.7; HFPS Vol. 2 section 2.1")
+    capture _rtm_export setting, key(indicator) value("`kind'")
+    capture _rtm_export setting, key(level) value("`level'")
+    capture _rtm_export setting, key(deff) value("`deff'") source("UN 2008 para 60 (2.0); HFPS Vol. 2 p. 3 (list sample about 1)")
+    capture _rtm_export setting, key(nonresponse) value("`nonresponse'") source("UN 2008 para 60 (1.1)")
+    if `attrition' > 0 capture _rtm_export setting, key(attrition) value("`attrition' per round, `rounds' rounds, first loss `firstloss'") source("MPPS 2016 p. 45")
+    if `change' != 0 capture _rtm_export setting, key(change) value("`change', power `power'") source("HFPS Vol. 2 Table 1; power twoproportions/twomeans")
+    if `share' != 1 | `hhsize' != 1 capture _rtm_export setting, key(share_hhsize) value("`share' `hhsize'") source("UN 2008 formula 3.7")
+    capture _rtm_export setting, key(domains) value("`domains'")
 end

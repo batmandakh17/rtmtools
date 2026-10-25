@@ -7,11 +7,14 @@ d adjustment by weighting classes, response propensity, entropy balancing or cel
 d post-stratification; trimming; calibration to population totals; household weights
 d from person weights; weighting report), for design-based estimates, for sample
 d sizes, allocation across strata and probability draws from a frame, and for frames
-d of areas. Every run is exported (manifest, CSV tables, an Excel display workbook
+d of areas (list frames; grid frames from a population raster and boundaries, with
+d replacement cells and splits; spatially spread draws). Every run is exported (manifest, CSV tables, an Excel display workbook
 d and a dashboard page that read the export and compute nothing). The weighting
-d steps run through svycal, svyset, logit, survwgt, ipfraking and ebalance; no R.
-d A portable do-file version of the weighting workflow (portable_do_files/) can be
-d copied and adapted by another program following ADAPTATION.md.
+d steps run through svycal, svyset, logit, survwgt, ipfraking and ebalance, the
+d frame steps through shp2dta and geoinpoly; nothing in the package uses R.
+d Listing support (rtmlist): listing forms with segmentation and the completed listing
+d checked into the household frame. Portable do-file versions of the four workflows
+d (package rtmtools_portable, net get) can be copied and adapted by another program following ADAPTATION.md.
 d Method defaults cite the HFPS sampling guidelines (Himelein et al. 2020), the
 d Listening to Tajikistan methods report, Ambel et al. 2021 and UN 2008.
 d
@@ -22,7 +25,7 @@ d KW: entropy balancing
 d KW: phone survey
 d KW: real-time monitoring
 d
-d Requires: Stata version 16 (svycal: Stata 18); survwgt, ebalance, ipfraking, gsample and moremata from SSC for the corresponding steps
+d Requires: Stata version 16 (svycal: Stata 18); survwgt, ebalance, ipfraking, gsample, moremata, shp2dta and geoinpoly from SSC for the corresponding steps
 d
 d Distribution-Date: 20261025
 d
@@ -31,7 +34,6 @@ d
 F rtmtools.sthlp
 F rtmtools_setup.ado
 F rtmtools_setup.sthlp
-F rtmtools_check.R
 F rtmweight.ado
 F rtmweight.sthlp
 F rtmweight_base.ado
@@ -66,16 +68,20 @@ F rtmframe_split.ado
 F rtmframe_split.dlg
 F rtmsample_grid.ado
 F rtmsample_grid.dlg
-F rtm_grid.R
-F rtm_grts.R
-F rtm_cells.R
+F rtmsample_rdd.ado
+F rtmsample_rdd.dlg
 F _rtmsample_label.ado
+F rtmlist.ado
+F rtmlist.sthlp
+F rtmlist_prepare.ado
+F rtmlist_prepare.dlg
+F rtmlist_import.ado
+F rtmlist_import.dlg
 F rtmest.ado
 F rtmest.sthlp
 F rtmest.dlg
 F _rtm_util.ado
 F _rtm_export.ado
-F _rtm_runr.ado
 F rtmtools_dashboard.ado
 F rtmtools_dashboard.sthlp
 F rtmtools_dashboard.html
@@ -90,21 +96,12 @@ f data/rtm_totals_cells.dta
 f data/rtm_totals_persons.dta
 f data/rtm_totals_region.dta
 f data/make_rtm_synthetic.do
-f data/rtm_boundaries.gpkg
-f data/rtm_population.tif
-f data/make_rtm_spatial.R
-f portable_do_files/00_setup.do
-f portable_do_files/04_weights.do
-f portable_do_files/_export_helpers.do
-f portable_do_files/ADAPTATION.md
-f portable_do_files/rtm_display.xlsx
-f portable_do_files/template/rtm_baseline.dta
-f portable_do_files/template/rtm_round1.dta
-f portable_do_files/template/rtm_totals_long.dta
-f portable_do_files/template/rtm_totals_cells.dta
-f portable_do_files/template/rtm_persons.dta
-f portable_do_files/template/rtm_totals_persons.dta
-f portable_do_files/adopt_test/make_adopt_synthetic.do
-f portable_do_files/adopt_test/adopt_baseline.dta
-f portable_do_files/adopt_test/adopt_round1.dta
-f portable_do_files/adopt_test/adopt_totals_long.dta
+f data/make_rtm_spatial.py
+f data/rtm_boundaries.shp
+f data/rtm_boundaries.shx
+f data/rtm_boundaries.dbf
+f data/rtm_boundaries.prj
+f data/rtm_boundaries.cpg
+f data/rtm_population.asc
+f data/rtm_listing.dta
+f data/rtm_listing.xlsx

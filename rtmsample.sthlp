@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.2.0  24oct2026  rtmtools}{...}
+{* *! version 0.5.0  25oct2026  rtmtools}{...}
 {vieweralsosee "rtmtools" "help rtmtools"}{...}
 {vieweralsosee "rtmweight" "help rtmweight"}{...}
 {vieweralsosee "gsample" "help gsample"}{...}
@@ -36,12 +36,15 @@
 {p 8 16 2}
 {cmd:rtmsample} {cmd:draw} {ifin}{cmd:,} {opt n(#|varname)} {opt gen:erate(stub)}
 [{opt str:ata(varlist)} {opt meth:od(srs|systematic|pps|ppssys)} {opt pps(varname)} {opt sort(varlist)}
-{opt reserve(#|varname)} {opt seed(#)} {opt id(varlist)} {opt replace}]
+{opt reserve(#|varname|all)} {opt seed(#)} {opt id(varlist)} {opt replace}]
 
 {p 8 16 2}
-{cmd:rtmsample} {cmd:grid} {cmd:using} {it:grid_file}{cmd:,} {opt n(#|varname)} {opt gen:erate(stub)}
-[{opt str:ata(name)} {opt aux(name)} {opt nover(#)} {opt nnear(#)} {opt mindis(#)} {opt seed(#)} {opt id(name)}
-{opt l:ayer(name)} {opt sav:ing(file)} {opt replace}]
+{cmd:rtmsample} {cmd:grid} {ifin}{cmd:,} {opt n(#|varname)} {opt gen:erate(prefix)} {opt xy(xvar yvar)}
+[{opt str:ata(varlist)} {opt pps(varname)} {opt bands(#)} {opt band:width(#)} {opt reserve(#|all)} {opt seed(#)} {opt id(varlist)} {opt replace}]
+
+{p 8 16 2}
+{cmd:rtmsample} {cmd:rdd}{cmd:,} {opt pre:fixes(numlist)} {opt n(numlist)}
+[{opt dig:its(#)} {opt seed(#)} {opt sav:ing(filename)} {opt replace} {opt clear}]
 
 {pstd}
 Dialogs: {dialog rtmsample_size}, {dialog rtmsample_allocate}, {dialog rtmsample_draw}, {dialog rtmsample_grid}; or
@@ -204,7 +207,7 @@ within strata, and without it the frame's current order is used.
 ordering, so pi = n_h x size / sum of sizes as well, with the same certainty treatment.
 
 {phang}
-{opt reserve(#|varname)} draws, after the main sample and with the same method, that many further
+{opt reserve(#|varname|all)} draws, after the main sample and with the same method, that many further
 units per stratum from those not selected, ranked in {it:stub}{cmd:_reserve} in the order they
 should be used. They are pre-designated replacements (Grosh and Mu{c n~}oz 1996 pp. 93-94). UN 2008
 warns that substituting a unit that cannot be interviewed is a biased procedure (paras 172, 178-179,
@@ -226,34 +229,61 @@ size under PPS), as checks.
 
 
 {marker grid}{...}
-{title:rtmsample grid: spatially balanced selection from a grid frame}
+{title:rtmsample grid: spatially spread draw from a grid frame (no R)}
 
 {pstd}
-The frame in memory is a grid frame from {helpb rtmframe} {cmd:grid} (or any frame with a unit
-identifier, {opt id(name)}, default {cmd:cell_id}), and {it:grid_file} its GeoPackage. The command
-runs {cmd:grts()} of the R package spsurvey (Dumelle et al. 2023) on the cell centroids: the
-generalized random tessellation stratified design of Stevens and Olsen 2004 spreads the sample
-over space while keeping the inclusion probabilities, which gives a more precise sample than
-a simple random draw of cells when neighbouring cells are alike (HFPS Vol. 2 Annex 1 on
-balanced designs; the susospatsample README). {opt n(#)} is the base sample per stratum of
-{opt strata(name)} (or for the whole frame), or a variable constant within strata from
-{cmd:rtmsample allocate}. Inclusion probabilities are equal within strata, or proportional to
-{opt aux(name)} (the measure of size). {opt nover(#)} adds reverse-hierarchically ordered
-replacement sites per stratum, to be used in order; {opt nnear(#)} adds that many nearest
-neighbour replacements per base site; {opt mindis(#)} imposes a minimum distance between sites
-(metres). {opt seed(#)} is set right before the draw (a seed is drawn and reported if not given);
-the strata are passed to grts() in alphabetical order of their values, so a direct call in R with
-the same seed and that order repeats the draw.
+The frame in memory holds cells or points with coordinates {opt xy(xvar yvar)} (a projected
+system, metres), a measure of size (optional) and strata (optional), for example the cell frame
+of {helpb rtmframe} {cmd:grid}, which carries them as {cmd:x} and {cmd:y} ({cmd:xy(x y)}). The command puts the units of each stratum in {it:serpentine
+geographic order} (horizontal bands of the y coordinate, {opt bands(#)} of them or of height
+{opt bandwidth(#)}, by default about the square root of the units; x ascending in one band and
+descending in the next) and takes a systematic sample along that order: equal probabilities, or
+probability proportional to {opt pps(varname)}. This is the geographic implicit stratification of
+UN 2008 (paras 77-79: sort the frame geographically, select systematically) applied to cells; it
+spreads the sample over the territory. {opt reserve(#|all)} marks the next units in the same order
+as ordered replacements. The draw itself is {cmd:rtmsample draw} with {cmd:method(systematic)} or
+{cmd:method(ppssys)} sorted by the serpentine key, so the inclusion probabilities, weights, order,
+reserve ranks, seed and stored results are those of {cmd:rtmsample draw}.
 
 {pstd}
-The command writes {it:stub}{cmd:_sel} (1 for the base sample), {it:stub}{cmd:_pi} (spsurvey's inclusion
-probability), {it:stub}{cmd:_w} (its weight, 1/pi), {it:stub}{cmd:_order} (site number in the
-reverse hierarchical order, so that the first k sites are themselves a balanced sample),
-{it:stub}{cmd:_reserve} (rank among the ordered replacements of the stratum), {it:stub}{cmd:_near} (the
-base site a nearest-neighbour replacement stands for) and {it:stub}{cmd:_site} (spsurvey's site
-identifier). {opt saving(file)} writes the selected sites to a GeoPackage. The weights sum to
-the units of each stratum under equal probabilities; replacement sites carry no weight until used
-(UN 2008 paras 172 and 178 on substitution).
+{bf:What this is not.} It is not the GRTS design (Stevens and Olsen 2004; spsurvey, Dumelle et al.
+2023), which version 0.4.0 ran through R. GRTS orders the units by a reverse hierarchical
+address so that any contiguous subset of the ordered sample is itself spatially balanced (so
+replacements taken in order keep the balance) and has a local neighbourhood variance estimator;
+the serpentine order balances along the bands, keeps spread only approximately when units are
+replaced, and leaves the variance to the ordinary design-based estimator with the implicit
+stratification unrecognised (conservative). None of the L2 programs has used a grid frame or a
+spatially balanced draw; the stand-in was chosen so that the package needs no R.
+
+
+{marker rdd}{...}
+{title:rtmsample rdd: random digit dialing sample}
+
+{pstd}
+Telephone numbers generated at random from operator prefixes, the frame of the phone surveys
+without a baseline (L2Som; L2Arm and L2Geo from their second round): each prefix is a stratum of
+the number space, {opt n(numlist)} numbers per prefix (one number for all, or one per prefix),
+{opt digits(#)} random digits after the prefix (default 7), no number twice, and a recorded seed.
+The selection probability of a number within its prefix is n / 10^digits and the design weight
+its inverse; whether a number is active, a household, and eligible is learned by the call centre,
+and every number's outcome must be kept for the response adjustment (HFPS Vol. 2 pp. 7-8). A
+household reachable on several numbers needs {cmd:rtmweight base, multiplicity()} (HFPS Vol. 2
+p. 21). The numbers replace the data in memory ({opt clear} when the data have unsaved changes)
+and can be saved with {opt saving()}; they are never exported: the run's export holds the counts
+per prefix only. Source: HFPS Vol. 2 pp. 7-8; Waksberg 1978.
+
+
+{marker export}{...}
+{title:The export}
+
+{pstd}
+Every subcommand writes its run into the export folder (see {helpb rtmtools_dashboard}): {cmd:size}
+the {cmd:size} table (one row per domain and for the total); {cmd:allocate} the {cmd:allocation}
+table (one row per stratum: units, size, share, planned, bounds, final, sampling fraction);
+{cmd:draw} and {cmd:grid} the {cmd:draw_summary} table (one row per stratum) and the {cmd:selection}
+table (one row per frame unit: identifier from {opt id()}, stratum, size, order, selected, reserve
+rank, probability, weight, and the coordinates given with {opt xy()}, which the dashboard maps);
+{cmd:rdd} the {cmd:draw_summary} table per prefix. The Excel workbook and the dashboard display them.
 
 
 {marker examples}{...}
@@ -282,11 +312,14 @@ stratum; then the second stage, 12 households in each selected area from the hou
 {phang2}{cmd:. rtmsample draw, n(12) strata(ea_id) seed(20261025) generate(hh)}{p_end}
 {phang2}{cmd:. rtmweight base if hh_sel == 1, probability(ea_pi hh_pi) generate(w_base)}{p_end}
 
-{pstd}A spatially balanced sample of grid cells: five per region with two ordered replacements,
-then twelve cells with probabilities proportional to population and one nearest neighbour each{p_end}
-{phang2}{cmd:. rtmframe grid using rtm_boundaries.gpkg, raster(rtm_population.tif) cellsize(10000) strata(region) saving(rtm_grid.gpkg) clear}{p_end}
-{phang2}{cmd:. rtmsample grid using rtm_grid.gpkg, n(5) strata(stratum) nover(2) seed(20261024) generate(g)}{p_end}
-{phang2}{cmd:. rtmsample grid using rtm_grid.gpkg, n(12) aux(pop) nnear(1) seed(20261025) generate(p)}{p_end}
+{pstd}A spatially spread sample of grid cells: five per stratum with two ordered replacements, on a cell frame with coordinates x and y and population pop{p_end}
+{phang2}{cmd:. rtmsample grid, n(5) strata(stratum) pps(pop) xy(x y) reserve(2) seed(20261025) id(cell_id) generate(g)}{p_end}
+
+{pstd}A phone subsample from a baseline: six households per PSU, every other baseline household kept as an ordered replacement (the L2 practice){p_end}
+{phang2}{cmd:. rtmsample draw, n(6) strata(psu) seed(20251027) reserve(all) id(hhid) generate(ph)}{p_end}
+
+{pstd}A random digit dialing sample: 300, 300 and 400 numbers from three prefixes, six random digits{p_end}
+{phang2}{cmd:. rtmsample rdd, prefixes(61 62 77) n(300 300 400) digits(6) seed(5) clear}{p_end}
 
 
 {marker results}{...}
@@ -330,7 +363,9 @@ size would give a probability above 1.
 {phang}Brewer, K. R. W., and M. Hanif. 1983. Sampling with Unequal Probabilities. New York: Springer.{p_end}
 {phang}Cochran, W. G. 1977. Sampling Techniques. 3rd ed. New York: Wiley.{p_end}
 {phang}Dabalen, A., A. Etang, J. Hoogeveen, E. Mushi, Y. Schipper, and J. von Engelhardt. 2016. Mobile Phone Panel Surveys in Developing Countries: A Practical Guide for Microdata Collection. World Bank. (MPPS 2016){p_end}
-{phang}Dumelle, M., T. Kincaid, A. R. Olsen, and M. Weber. 2023. spsurvey: spatial sampling design and analysis in R. Journal of Statistical Software 105(3): 1-29.{p_end}
+{phang}Dumelle, M., T. Kincaid, A. R. Olsen, and M. Weber. 2023. spsurvey: spatial sampling design and analysis in R. Journal of Statistical Software 105(3): 1-29 (the GRTS design the serpentine order stands in for).{p_end}
+{phang}Stevens, D. L., and A. R. Olsen. 2004. Spatially balanced sampling of natural resources. Journal of the American Statistical Association 99(465): 262-278.{p_end}
+{phang}Waksberg, J. 1978. Sampling methods for random digit dialing. Journal of the American Statistical Association 73(361): 40-46.{p_end}
 {phang}Grosh, M., and J. Mu{c n~}oz. 1996. A Manual for Planning and Implementing the Living Standards Measurement Study Survey. LSMS Working Paper 126. World Bank.{p_end}
 {phang}Hartley, H. O., and J. N. K. Rao. 1962. Sampling with unequal probabilities and without replacement. Annals of Mathematical Statistics 33: 350-374.{p_end}
 {phang}Himelein, K., S. Eckman, J. Kastelic, K. McGee, M. Wild, and N. Yoshida. 2020. High Frequency Mobile Phone Surveys of Households to Assess the Impacts of COVID-19, Vol. 2: Guidelines on Sampling Design. World Bank. (HFPS Vol. 2){p_end}

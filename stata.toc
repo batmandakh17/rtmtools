@@ -1,4 +1,5 @@
 v 3
 d rtmtools: Stata tools for the design and weighting of real-time monitoring phone surveys
 d Real-Time Monitoring Survey Handbook task team, World Bank
-p rtmtools  Survey weights, estimation and (later) sampling, frames and small-area tools, with dialogs under User > RTM tools
+p rtmtools  Survey weights, estimation, sampling, frames and listing tools, with dialogs under User > RTM tools; sample data with net get
+p rtmtools_portable  Portable do-file versions of the four workflows, with template data and adaptation guide (net get)

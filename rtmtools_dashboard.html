@@ -237,6 +237,48 @@ function pairChart(labels, a, b, title, la, lb) {
   }
   return s + '</svg>';
 }
+function mapSvg(units, bounds, title) {
+  // units: a table with x, y and optionally selected/reserve/stratum/flag; bounds: the boundaries table (polygon_id, part, vertex, x, y)
+  var pts = [], xs = [], ys = [];
+  if (units && units.cols) {
+    var ix = units.cols.indexOf('x'), iy = units.cols.indexOf('y'), isel = units.cols.indexOf('selected'), ires = units.cols.indexOf('reserve'), ist = units.cols.indexOf('stratum'), ifl = units.cols.indexOf('flag');
+    units.rows.forEach(function (r) {
+      if (typeof r[ix] !== 'number' || typeof r[iy] !== 'number') return;
+      pts.push({ x: r[ix], y: r[iy], sel: isel >= 0 ? r[isel] : null, res: ires >= 0 ? r[ires] : null, st: ist >= 0 ? String(r[ist]) : '', fl: ifl >= 0 ? r[ifl] : '' });
+      xs.push(r[ix]); ys.push(r[iy]);
+    });
+  }
+  var lines = [];
+  if (bounds && bounds.cols) {
+    var bp = bounds.cols.indexOf('polygon_id'), bpart = bounds.cols.indexOf('part'), bx = bounds.cols.indexOf('x'), by = bounds.cols.indexOf('y'), cur = null, key = null;
+    bounds.rows.forEach(function (r) {
+      var k = r[bp] + '/' + r[bpart];
+      if (k !== key) { key = k; cur = []; lines.push(cur); }
+      cur.push([r[bx], r[by]]); xs.push(r[bx]); ys.push(r[by]);
+    });
+  }
+  if (!pts.length && !lines.length) return '';
+  var minx = Math.min.apply(null, xs), maxx = Math.max.apply(null, xs), miny = Math.min.apply(null, ys), maxy = Math.max.apply(null, ys);
+  var W = 520, H = 400, pad = 12, sx = (W - 2 * pad) / ((maxx - minx) || 1), sy = (H - 2 * pad) / ((maxy - miny) || 1), sc = Math.min(sx, sy);
+  var X = function (v) { return pad + (v - minx) * sc; }, Y = function (v) { return H - pad - (v - miny) * sc; };
+  var strata = {}, palette = ['#1c5cab', '#eb6834', '#2a9d8f', '#8e5bb3', '#c99a00', '#d03b3b', '#5b8c5a', '#6c757d'], si = 0;
+  var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(title) + '" style="max-height:420px">';
+  s += '<text x="' + pad + '" y="14" font-size="12" fill="currentColor">' + esc(title) + '</text>';
+  lines.forEach(function (l) { s += '<polyline fill="none" stroke="currentColor" stroke-opacity=".55" stroke-width="1" points="' + l.map(function (p) { return X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1); }).join(' ') + '"/>'; });
+  var r = pts.length > 600 ? 2 : (pts.length > 150 ? 3 : 4.5);
+  pts.forEach(function (p) {
+    var fill, op = 0.9;
+    if (p.sel === 1) fill = 'var(--accent)';
+    else if (p.res > 0) fill = 'var(--warn)';
+    else if (p.sel === 0) { fill = 'var(--muted)'; op = 0.45; }
+    else { if (!(p.st in strata)) strata[p.st] = palette[si++ % palette.length]; fill = strata[p.st]; }
+    s += '<circle cx="' + X(p.x).toFixed(1) + '" cy="' + Y(p.y).toFixed(1) + '" r="' + r + '" fill="' + fill + '" fill-opacity="' + op + '"' + (p.fl ? ' stroke="var(--crit)" stroke-width="1.5"' : '') + '><title>' + esc(p.st ? 'stratum ' + p.st : '') + (p.sel === 1 ? ' selected' : (p.res > 0 ? ' reserve ' + p.res : '')) + (p.fl ? ' ' + esc(p.fl) : '') + '</title></circle>';
+  });
+  var legend = pts.some(function (p) { return p.sel === 1; }) ? 'blue: selected; orange: reserve; grey: not selected' : (Object.keys(strata).length > 1 ? 'colour by stratum' : '') ;
+  if (pts.some(function (p) { return p.fl; })) legend += (legend ? '; ' : '') + 'red ring: flagged';
+  if (legend) s += '<text x="' + pad + '" y="' + (H - 2) + '" font-size="11" fill="currentColor">' + legend + '</text>';
+  return s + '</svg>';
+}
 function kv(k, v) { return '<div class="kv"><div class="k">' + esc(k) + '</div><div class="v">' + v + '</div></div>'; }
 function summaryGrid(m) {
   var s = m.summary || {}, keys = [
@@ -281,9 +323,37 @@ function card(m) {
   }
   if (d.weight_groups) h += '<h3>Weights by group</h3>' + tableHtml(d.weight_groups, 40) + src(m, 'weight_groups');
   if (d.flags) h += '<h3>Flagged units</h3>' + tableHtml(d.flags, 30) + src(m, 'flags');
-  ['allocation', 'draw_summary', 'size', 'frame_summary', 'listing_areas', 'listing_checks'].forEach(function (t) { if (d[t]) h += '<h3>' + esc(t.replace('_', ' ')) + '</h3>' + tableHtml(d[t], 40) + src(m, t); });
+  if (d.size) h += '<h3>Sample size</h3>' + tableHtml(d.size) + src(m, 'size');
+  if (d.allocation) {
+    var al = d.allocation;
+    h += '<h3>Allocation across strata</h3>' + tableHtml(al, 40) + src(m, 'allocation');
+    h += '<div class="chart">' + pairChart(col(al, 'stratum'), col(al, 'n_planned'), col(al, 'n_final'), 'Planned and final allocation', 'planned', 'final') + '</div>';
+  }
+  if (d.draw_summary) {
+    var ds = d.draw_summary;
+    h += '<h3>Draw by stratum</h3>' + tableHtml(ds, 40) + src(m, 'draw_summary');
+    h += '<div class="chart">' + pairChart(col(ds, 'stratum'), col(ds, 'prob_min'), col(ds, 'prob_max'), 'Inclusion probability, min and max', 'min', 'max') + '</div>';
+  }
+  if (d.frame_summary) {
+    var fs = d.frame_summary;
+    h += '<h3>Frame by stratum</h3>' + tableHtml(fs, 40) + src(m, 'frame_summary');
+    h += '<div class="row"><div class="chart">' + barChart(col(fs, 'stratum'), col(fs, 'size_sum'), 'Size by stratum') + '</div><div class="chart">' + barChart(col(fs, 'stratum'), col(fs, 'n_flagged'), 'Flagged units by stratum') + '</div></div>';
+  }
+  if (d.listing_checks) h += '<h3>Listing checks</h3>' + tableHtml(d.listing_checks, 20) + src(m, 'listing_checks');
+  if (d.listing_areas) {
+    var la = d.listing_areas;
+    h += '<h3>Areas</h3>' + tableHtml(la, 30) + src(m, 'listing_areas');
+    if (col(la, 'listed') && col(la, 'listed').some(function (v) { return typeof v === 'number'; })) h += '<div class="chart">' + pairChart(col(la, 'area_id'), col(la, 'expected'), col(la, 'listed'), 'Expected and listed households by area (first 16 labelled)', 'expected', 'listed') + '</div>';
+  }
+  if (d.replacements) h += '<h3>Replacement candidates</h3>' + tableHtml(d.replacements, 40) + src(m, 'replacements');
+  if (d.selection) h += '<h3>Selection (first rows)</h3>' + tableHtml(d.selection, 20) + src(m, 'selection');
+  if (d.frame_units) h += '<h3>Frame units (first rows)</h3>' + tableHtml(d.frame_units, 20) + src(m, 'frame_units');
+  var mapTable = d.selection && col(d.selection, 'x') ? d.selection : (d.frame_units && col(d.frame_units, 'x') ? d.frame_units : null);
+  if (mapTable || d.boundaries) {
+    var mp = mapSvg(mapTable, d.boundaries, 'Map from the exported coordinates (no base map: the export carries no tiles)');
+    if (mp) h += '<h3>Map</h3><div class="chart">' + mp + '</div>' + src(m, mapTable === d.selection ? 'selection' : (mapTable ? 'frame_units' : 'boundaries'));
+  }
   Object.keys(d).forEach(function (t) { if (d[t] && d[t].file) h += '<p class="muted">' + esc(t) + ': ' + d[t].rows.toLocaleString() + ' rows in ' + esc(d[t].file) + ' (open the run folder to see it)</p>'; });
-  if (m.map) h += '<p class="muted">map: ' + esc(JSON.stringify(m.map)) + '</p>';
   h += '<h3>Reproduce</h3><div class="cmd">' + esc(m.command) + '</div>';
   return h + '</div>';
 }

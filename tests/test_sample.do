@@ -264,4 +264,50 @@ capture noisily rtmsample size, sd(40)
 assert _rc == 198
 capture noisily rtmsample frob, n(1)
 assert _rc == 198
+* ---------- 12. reserve(all), the serpentine grid draw, random digit dialing ----------
+use "../data/rtm_frame.dta", clear
+rtmsample draw, n(6) strata(stratum) seed(7) reserve(all) id(ea_id) generate(ph)
+assert r(n_selected) == 48 & r(n_reserve) == 400 - 48
+bysort stratum: egen double nres_all = total(ph_reserve > 0)
+assert nres_all + 6 == 60 if inlist(stratum, 1, 3, 5, 7)
+assert nres_all + 6 == 40 if inlist(stratum, 2, 4, 6, 8)
+bysort stratum (ph_reserve): assert ph_reserve[_N] == nres_all[_N]
+* grid: a 20 x 20 lattice; systematic PPS along the serpentine order reproduces PPS probabilities
+clear
+set obs 400
+gen int cell_id = _n
+gen double x = 500 + 1000 * mod(_n - 1, 20)
+gen double y = 500 + 1000 * floor((_n - 1) / 20)
+gen byte stratum = 1 + (x > 10000) + 2 * (y > 10000)
+set seed 11
+gen double pop = round(50 + 300 * runiform())
+rtmsample grid, n(5) strata(stratum) pps(pop) xy(x y) reserve(2) seed(20261025) id(cell_id) generate(g)
+assert r(n_selected) == 20 & r(n_reserve) == 8 & r(bands) > 1
+bysort stratum: egen double ps = total(pop)
+assert reldif(g_pi, 5 * pop / ps) < 1e-12 if g_cert == 0
+bysort stratum: egen double ht = total(cond(g_sel, pop / g_pi, 0))
+assert reldif(ht, ps) < 1e-9
+* the sample is spread: selected cells fall in at least three distinct bands of y per stratum
+gen int yb = floor(y / 2500)
+bysort stratum yb: egen byte anysel = max(g_sel)
+bysort stratum yb: gen byte first = (_n == 1)
+bysort stratum: egen double nbands = total(anysel * first)
+assert nbands >= 3
+* the same seed repeats the draw
+rtmsample grid, n(5) strata(stratum) pps(pop) xy(x y) reserve(2) seed(20261025) id(cell_id) generate(g2)
+assert g2_sel == g_sel
+* rdd: no number twice, one row per number, counts per prefix
+rtmsample rdd, prefixes(61 62 77) n(300 300 400) digits(6) seed(5) clear
+assert r(n_numbers) == 1000 & r(n_prefixes) == 3
+assert _N == 1000
+quietly duplicates report number
+assert r(unique_value) == 1000
+quietly count if prefix == 77
+assert r(N) == 400
+assert strlen(number) == 8
+assert reldif(prob, 400 / 1e6) < 1e-12 if prefix == 77
+rtmsample rdd, prefixes(61) n(5) digits(2) seed(5) clear
+assert _N == 5
+capture noisily rtmsample rdd, prefixes(61) n(200) digits(2) seed(5) clear
+assert _rc == 459
 di as result "test_sample: all assertions passed"

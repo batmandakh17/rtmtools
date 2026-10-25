@@ -20,13 +20,16 @@ covers:
 
 {phang2}{helpb rtmweight}: base weights; nonresponse and attrition adjustment by weighting classes, logit or probit propensity, entropy balancing with or without base weights, or cell post-stratification (every choice labeled with its source, including the L2 programs\' practice); trimming; calibration to population totals; household weights from person weights; and a weighting report (Excel and Word). No step uses R.{p_end}
 {phang2}{helpb rtmest}: design-based estimates (means, proportions, totals, ratios) by domain with standard errors, design effects and coefficients of variation, with the calibration in the variance.{p_end}
-{phang2}{helpb rtmsample}: sample size per domain (level or change, with design effect, nonresponse and attrition reserve), allocation across strata, and probability draws from a frame (simple random, systematic, PPS) with inclusion probabilities, design weights, reserve units and a recorded seed.{p_end}
-{phang2}{helpb rtmframe}: checks on a list frame of areas; grid frames from boundary files and a population raster (R), with replacement cells and splits of large cells; the spatially balanced draw from a grid frame is {helpb rtmsample##grid:rtmsample grid} (R, spsurvey).{p_end}
+{phang2}{helpb rtmsample}: sample size per domain (level or change, with design effect, nonresponse and attrition reserve), allocation across strata, probability draws from a frame (simple random, systematic, PPS) with inclusion probabilities, design weights, reserve units and a recorded seed, the phone subsample of a baseline with every other household as an ordered replacement, a spatially spread draw from a grid frame (serpentine systematic selection) and random digit dialing samples.{p_end}
+{phang2}{helpb rtmframe}: checks on a list frame of areas; grid frames from a population raster (ESRI ASCII grid) and boundaries (shapefile), with replacement cells and splits of large cells; no R.{p_end}
 {phang2}{helpb rtmtools_dashboard}: every run is exported (manifest, CSV tables, an Excel display workbook) into the export folder, and a self-contained page shows the progress and results of the runs, refreshed while a do-file runs; the workbook and the page read the export and compute nothing. A portable do-file version of the weighting workflow ({cmd:portable_do_files/04_weights.do} with {cmd:ADAPTATION.md}) can be copied and adapted by another program.{p_end}
 {phang2}{helpb rtmtools_setup}: the menu and the dependency checks.{p_end}
 
 {pstd}
-Planned for later versions: listing support ({cmd:rtmlist}) and Fay-Herriot small-area estimates
+{phang}{helpb rtmlist}: listing support: listing forms for the selected areas with segmentation of large areas, and the completed listing checked into the household frame.{p_end}
+
+{pstd}
+Planned for later versions: Fay-Herriot small-area estimates
 ({cmd:rtmsae}).
 
 {pstd}
@@ -44,6 +47,7 @@ and {cmd:r()}, and the dialogs write the full command to the Review window.
 {phang2}{cmd:. rtmtools_setup}{p_end}
 {phang2}{cmd:. rtmtools_setup, profile}      {it:(menu at every start)}{p_end}
 {phang2}{cmd:. net get rtmtools}            {it:(sample data into the current folder)}{p_end}
+{phang2}{cmd:. net get rtmtools_portable}   {it:(portable do-files, template data and ADAPTATION.md)}{p_end}
 {phang2}{cmd:. rtmtools_dashboard}        {it:(the live dashboard in the browser)}{p_end}
 {phang2}{cmd:. help rtmweight}{p_end}
 

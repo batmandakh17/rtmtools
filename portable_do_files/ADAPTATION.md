@@ -1,8 +1,12 @@
 # Adapting the portable do-files to your program
 
-The do-files in this folder compute the weights of a phone-panel round (and, in later versions, build frames, support listing and draw samples) with official Stata commands and a few community commands. They were written to be copied by another task team: every setting sits in one block at the top of the do-file, every step is explained above its code, and nothing below the block names a file or a variable of the program they came from.
+The do-files in this folder build frames of areas (`01_frame.do`), support the listing (`02_listing.do`), size, allocate and draw samples (`03_sample.do`) and compute the weights of a phone-panel round (`04_weights.do`) with official Stata commands and a few community commands. They were written to be copied by another task team: every setting sits in one block at the top of the do-file, every step is explained above its code, and nothing below the block names a file or a variable of the program they came from.
 
-This guide walks through `04_weights.do`. Nothing in it is a survey-design recommendation: the do-file carries out the design and the method you choose, and the sources of the defaults are cited in the file.
+This guide walks through `04_weights.do` in sections 1 to 5 and the other three do-files in section 6b. Nothing in it is a survey-design recommendation: the do-file carries out the design and the method you choose, and the sources of the defaults are cited in the file.
+
+## 0. Getting the files
+
+From the repository (ZIP or clone) the folder layout is the one the parameter blocks assume: the template data in `template/` beside the do-files. From Stata, `net get rtmtools_portable, from("https://raw.githubusercontent.com/batmandakh17/rtmtools/main/")` puts the same files in the current folder without subfolders and with lower-cased names (this guide arrives as `adaptation.md`): make a `template` folder and move the `rtm_*` files into it, or drop `template/` from the paths in the parameter blocks. The do-files do not need the `rtmtools` package itself.
 
 ## 1. What you need
 
@@ -110,6 +114,20 @@ that loads what you need afterwards.
 ## 6. The portability checklist (what the test does)
 
 1. Copy the folder. 2. Run `00_setup.do`. 3. Put your baseline, round and totals files where the parameters point. 4. Change only the parameter block. 5. Run `04_weights.do` and read the Results window to the end. 6. Open `rtm_display.xlsx` of the last run and check that the weights are positive, that the sums match your totals (calibration) or the baseline (adjustment), and that the response rates are the ones you expect. 7. Keep the run folders with the data: they are the record of how the weights were made.
+
+## 6b. The other three do-files
+
+The same rules apply: a parameter block at the top, nothing project-specific below it.
+
+Files you need before you start: route `list` of `01_frame.do` needs your area frame (.dta); route `grid` needs the boundaries shapefile (`.shp` with its `.shx`, `.dbf` and `.prj`) and the population raster as an ESRI ASCII grid (`.asc`), both in one projected coordinate system; `02_listing.do` needs the selected areas (.dta) and, for step 2, the returned listing (.dta, .csv or .xlsx); `03_sample.do` needs the checked frame and, for steps 4 and 5, the household list and the baseline (.dta).
+
+**`01_frame.do`** (`route list` or `route grid`). Route A takes your area frame (`data_frame`, `area_id`, `size`, `strata`, `exclude`) and the size bounds (`minsize`, `maxsize`; GM 1996: units under 30 households appended to a neighbour, over 300 segmented); it writes the flags `frame_*` and the checked frame. Route B takes the boundaries shapefile and the population raster as an ESRI ASCII grid (`shapefile`, `raster`; both in one projected coordinate system, converted once in QGIS as the `rtmframe` help describes), the cell size, the stratum and name attributes of the shapefile (`strata_attr`, `id_attr`; at most 10 characters, as shapefiles allow), and writes the cell frame and the pixel table. Needs `shp2dta` and `geoinpoly` (`00_setup.do`).
+
+**`02_listing.do`.** Step 1 writes the listing forms for the selected areas (`data_areas`, `selected_var`, `area_id`, `expected`, `strata`, `forms_file`) with the segmentation of large areas (`segment_size`, `seed`; UN 2008 paras 138-140). Step 2 reads the completed listing (`data_listing`, a .dta, .csv or .xlsx with one row per household, whose column names you give in `col_area`, `col_structure`, `col_household`, `col_eligible`), checks it (areas not returned, households in areas not selected, duplicates, listed against expected within `ratio_low` and `ratio_high`) and writes the household frame (`saving_frame`). Run step 2 only after the forms are back: set `data_listing` to the returned table.
+
+**`03_sample.do`.** Step 1 sizes the sample (`p`, `relmargin`, `deff`, `nonresponse`, `attrition`, `rounds`, `firstloss`, `domains`); step 2 allocates `n_areas` across `strata` (`alloc`, `power_q`, `min_areas`, `max_areas`); step 3 draws the areas by systematic PPS sorted by `sort_vars` with `reserve_areas` reserves (`seed1`); step 4 draws `m_hh` households per selected area from `data_hh` (`hh_area_id`, `hh_id`; `""` skips it); step 5 draws the phone subsample of `data_baseline` (`bl_id`, `bl_psu`, `n_phone`, every other household an ordered replacement; `bl_psu` is your baseline's PSU or area variable, whatever it is called, and must be set, since the subsample is drawn within it). The frame's variables for step 3 are those of `01_frame.do`'s output or your own.
+
+The worked adaptation of section 3 continues for these files in `tests/test_portable.do` (the `adopt_test` program: frame `adopt_frame.dta` with `ea_code`, `zone`, `hh_count`, `selected`; listing `adopt_listing.dta` with `area`, `bldg`, `hh`, `elig`).
 
 ## 7. When your design is outside the do-file
 

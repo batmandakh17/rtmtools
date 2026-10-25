@@ -212,7 +212,7 @@ program define rtmweight_report, rclass
         local src_base "Design weights: inverse of the product of the stage inclusion probabilities (UN 2008, Designing Household Survey Samples, section 6.3), or baseline weights with a subsampling factor that preserves the baseline weight totals (Himelein et al. 2020, HFPS Vol. 2, pp. 10-11; Ambel et al. 2021, p. 10)."
         local src_nonresponse "Nonresponse and attrition adjustment: weighting classes (UN 2008, section 6.5; Himelein et al. 2020, p. 10) or response-propensity groups (Broccolini, Seitz and Azevedo 2017, pp. 7-11; Himelein et al. 2020, Annex A2.3.1; Dabalen et al. 2016, Box 2.2)."
         local src_trim "Trimming: winsorizing at a percentile (Himelein et al. 2020, p. 11; Ambel et al. 2021, p. 11) or capping with rescaling to the original total (UN 2008, section 6.8)."
-        local src_calibrate "Calibration to population totals: raking or linear calibration (Deville and Sarndal 1992; Deville, Sarndal and Sautory 1993) through Stata's svycal, ipfraking (Kolenikov 2014) or ReGenesees (Zardetto 2015); applied after the sample-based adjustments (Himelein et al. 2020, pp. 10-11; UN 2008, section 6.6)."
+        local src_calibrate "Calibration to population totals: raking or linear calibration (Deville and Sarndal 1992; Deville, Sarndal and Sautory 1993) through Stata's svycal or ipfraking (Kolenikov 2014); applied after the sample-based adjustments (Himelein et al. 2020, pp. 10-11; UN 2008, section 6.6)."
         if `nvrec' > 0 {
             foreach w of local varlist {
                 local vc : char `w'[rtm_cmd]
@@ -259,8 +259,7 @@ program define rtmweight_report, rclass
             "Deville, J.-C., and C.-E. Sarndal. 1992. Calibration Estimators in Survey Sampling. JASA 87: 376-382." ///
             "Himelein, K., et al. 2020. High Frequency Mobile Phone Surveys of Households to Assess the Impacts of COVID-19, Vol. 2: Guidelines on Sampling Design. World Bank." ///
             "Kolenikov, S. 2014. Calibrating Survey Data Using Iterative Proportional Fitting (Raking). Stata Journal 14(1): 22-59." ///
-            "United Nations. 2008. Designing Household Survey Samples: Practical Guidelines. Studies in Methods F/98." ///
-            "Zardetto, D. 2015. ReGenesees: An Advanced R System for Calibration, Estimation and Sampling Error Assessment in Complex Sample Surveys. Journal of Official Statistics 31(2): 177-203." {
+            "United Nations. 2008. Designing Household Survey Samples: Practical Guidelines. Studies in Methods F/98." {
             quietly putdocx paragraph
             quietly putdocx text ("`ref'")
         }

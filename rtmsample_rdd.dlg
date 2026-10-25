@@ -1,0 +1,69 @@
+/*
+  rtmsample_rdd.dlg -- rtmtools 0.5.0 (25oct2026)
+  Dialog for: rtmsample rdd (random digit dialing sample)
+*/
+
+VERSION 16.0
+
+INCLUDE _std_medium
+DEFINE _dlght 330
+INCLUDE header
+
+HELP hlp1, view("help rtmsample##rdd")
+RESET res1
+
+DIALOG main, label("rtmsample rdd - Random digit dialing sample") tabtitle("Main")
+BEGIN
+  TEXT     tx_pf         _lft    _top    _iwd    .,			///
+	label("Operator prefixes (numbers, separated by spaces), e.g. 61 62 77:")
+  EDIT     ed_pf         @       _ss     _iwd    .,			///
+	label("Prefixes")						///
+	option(prefixes)
+  TEXT     tx_n          _lft    _ls     _iwd    .,			///
+	label("Numbers to generate per prefix (one number, or one per prefix), e.g. 300 300 400:")
+  EDIT     ed_n          @       _ss     _iwd    .,			///
+	label("Numbers per prefix")					///
+	option(n)
+  TEXT     tx_dig        _lft    _ls     250     .,			///
+	label("Random digits after the prefix:")
+  SPINNER  sp_dig        260     @       70      .,			///
+	label("Digits")							///
+	min(1) max(12) default(7)					///
+	option(digits)
+  TEXT     tx_seed       _lft    _ls     250     .,			///
+	label("Seed (blank: chosen at random and reported):")
+  EDIT     ed_seed       260     @       120     .,			///
+	label("Seed")							///
+	numonly							///
+	option(seed)
+  TEXT     tx_sav        _lft    _ls     _iwd    .,			///
+	label("Save the numbers to a Stata file (optional; they replace the data in memory in any case):")
+  FILE     fi_sav        @       _ss     _iwd    .,			///
+	label("Browse...")						///
+	save								///
+	filter("Stata data (*.dta)|*.dta")				///
+	option(saving)
+  CHECKBOX ck_replace    _lft    _ls     200     .,			///
+	label("Replace the file if it exists")				///
+	option(replace)
+  TEXT     tx_note       _lft    _ls     _iwd    .,			///
+	label("The data in memory are replaced (unsaved changes stop the command unless they are saved first).")
+  TEXT     tx_note2      _lft    _ms     _iwd    .,			///
+	label("The export holds the counts per prefix only; the numbers themselves are never exported.")
+END
+
+PROGRAM command
+BEGIN
+	put "rtmsample rdd, "
+	beginoptions
+		require main.ed_pf
+		optionarg main.ed_pf
+		require main.ed_n
+		optionarg main.ed_n
+		optionarg main.sp_dig
+		optionarg main.ed_seed
+		optionarg main.fi_sav
+		option main.ck_replace
+		put " clear"
+	endoptions
+END

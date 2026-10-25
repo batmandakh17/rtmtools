@@ -21,7 +21,9 @@ capture which rtmweight
 assert _rc == 0
 capture findfile rtmweight_base.dlg
 assert _rc == 0
-capture findfile rtm_calibrate.R
+capture findfile rtmsample_grid.dlg
+assert _rc == 0
+capture findfile rtm_display.xlsx
 assert _rc == 0
 capture findfile rtmweight.sthlp
 assert _rc == 0
@@ -38,6 +40,19 @@ if `rc_data' {
     if !`rc_data' local datadir "data/"
 }
 assert `rc_data' == 0
+* the portable package: do-files, template data and the guide (a second .pkg, since one package file may list at most 100 files)
+capture net get rtmtools_portable, from("`pkg'") replace
+di "net get rtmtools_portable rc = " _rc
+capture confirm file "04_weights.do"
+local rc_port = _rc
+if `rc_port' {
+    capture confirm file "portable_do_files/04_weights.do"
+    local rc_port = _rc
+}
+assert `rc_port' == 0
+capture confirm file "ADAPTATION.md"
+if _rc capture confirm file "portable_do_files/ADAPTATION.md"
+assert _rc == 0
 * the README sequence
 use "`datadir'rtm_baseline", clear
 merge 1:1 hhid using "`datadir'rtm_round1", keepusing(responded_r1 skipmeal_r1 worked_r1) nogenerate
@@ -48,7 +63,7 @@ rtmweight trim w1 if responded_r1, generate(w1t) rule(winsor) pct(98)
 rtmweight calibrate i.region i.urban [pw=w1t] if responded_r1, generate(w2) totalsfile("`datadir'rtm_totals_long.dta")
 rtmweight report w0 w1 w1t w2 if responded_r1, notes
 rtmest skipmeal_r1 worked_r1 if responded_r1, weight(w2) strata(stratum) psu(psu) over(urban)
-rtmtools_setup, check nomenu nor
+rtmtools_setup, check nomenu
 cd "`olddir'"
 sysdir set PLUS "`oldplus'"
 di as result "test_install: net install from the local folder and the README sequence passed"

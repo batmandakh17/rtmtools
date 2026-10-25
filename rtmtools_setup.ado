@@ -1,17 +1,16 @@
 *! rtmtools_setup.ado  version 0.5.0  25oct2026  rtmtools
 *! One-time setup: adds the RTM tools entries to Stata's User menu for this session, can
 *! append the same lines to profile.do (so that the menu is there at every start), checks the
-*! Stata version and the user-written commands the package relies on, installs the missing
-*! ones from SSC on request, and checks R and the R packages the R-dependent steps need.
+*! Stata version and the user-written commands the package relies on, and installs the missing
+*! ones from SSC on request. Nothing in the package uses R.
 *!
 *!   rtmtools_setup                      menu for this session + a check report
 *!   rtmtools_setup, profile             also append the menu lines to profile.do (asks first in the GUI)
 *!   rtmtools_setup, install             install missing SSC dependencies (needs internet)
 *!   rtmtools_setup, check nomenu        check only
-*!   rtmtools_setup, r                   also look for R (only the frame and grid steps still use it; being replaced)
 program define rtmtools_setup, rclass
     version 16
-    syntax [, PROFile INSTall PATH(string) CHECK NOMENU NOR R MENUonly]
+    syntax [, PROFile INSTall CHECK NOMENU MENUonly]
     if "`menuonly'" != "" {
         * the line profile.do runs at start-up: add the menu, nothing else, no output
         capture _rtmtools_menu
@@ -40,15 +39,10 @@ program define rtmtools_setup, rclass
         _rtmtools_profile
     }
 
-    * ---- R path ----
-    if "`path'" != "" {
-        _rtm_runr find, path("`path'") save
-    }
-
     * ---- dependencies ----
     di as text _n "Stata commands used by the package:"
     local missing ""
-    foreach dep in survwgt ebalance ipfraking gsample geoinpoly sreweight {
+    foreach dep in survwgt ebalance ipfraking gsample geoinpoly shp2dta sreweight {
         capture which `dep'
         if _rc {
             di as text %-12s "`dep'" as err "missing" as text "   (ssc install `dep')"
@@ -71,40 +65,8 @@ program define rtmtools_setup, rclass
         }
     }
     else if "`missing'" != "" di as text "Run {stata rtmtools_setup, install} to install the missing commands (needs an internet connection)."
-    di as text "Which steps need which command: rtmweight nonresponse method(classes) needs survwgt and method(ebalance_nobase) needs ebalance (ebalance also cross-checks method(ebalance)); rtmweight calibrate engine(ipfraking) needs ipfraking; rtmsample draw needs gsample and moremata; geoinpoly is for the grid frames; sreweight gives the bounded logit distance by hand."
+    di as text "Which steps need which command: rtmweight nonresponse method(classes) needs survwgt and method(ebalance_nobase) needs ebalance (ebalance also cross-checks method(ebalance)); rtmweight calibrate engine(ipfraking) needs ipfraking; rtmsample draw needs gsample and moremata; geoinpoly and shp2dta are for rtmframe grid; sreweight gives the bounded logit distance by hand."
 
-    * ---- R (opt-in; no weighting step uses it any more) ----
-    if "`r'" != "" & "`nor'" == "" {
-        di as text _n "R (used only by rtmframe grid, replace and split and rtmsample grid until they are rebuilt without R):"
-        _rtm_runr find
-        local rs "`r(rscript)'"
-        if "`rs'" == "" {
-            di as text "  Rscript: " as err "not found" as text `". If R is installed, run rtmtools_setup, path("...full path to Rscript...")"'
-            return local rscript ""
-        }
-        else {
-            di as text "  Rscript: " as result "`rs'"
-            return local rscript "`rs'"
-            tempfile a s
-            tempname fh
-            quietly file open `fh' using "`a'", write text replace
-            file write `fh' "status=`s'" _n
-            file close `fh'
-            capture noisily _rtm_runr, script(rtmtools_check.R) args("`a'") status("`s'") quietly
-            if _rc di as err "  R could not be run; see the message above"
-            else {
-                local msg "`r(message)'"
-                * print one item per line
-                local msg = subinstr("`msg'", " package ", "|package ", .)
-                tokenize "`msg'", parse("|")
-                local i 1
-                while "``i''" != "" {
-                    if "``i''" != "|" di as text "  ``i''"
-                    local ++i
-                }
-            }
-        }
-    }
     di as text _n "Done. Type {stata help rtmtools} for the package overview."
 end
 
@@ -121,14 +83,18 @@ program define _rtmtools_menu
     window menu append item "Weights" "Weighting report..." "db rtmweight_report"
     window menu append submenu "RTM tools" "Frame"
     window menu append item "Frame" "Check a list frame of areas..." "db rtmframe_list"
-    window menu append item "Frame" "Grid frame from boundaries and a raster (needs R)..." "db rtmframe_grid"
-    window menu append item "Frame" "Replacement cells (needs R)..." "db rtmframe_replace"
-    window menu append item "Frame" "Split large cells (needs R)..." "db rtmframe_split"
+    window menu append item "Frame" "Grid frame from boundaries and a population raster..." "db rtmframe_grid"
+    window menu append item "Frame" "Replacement cells..." "db rtmframe_replace"
+    window menu append item "Frame" "Split large cells..." "db rtmframe_split"
     window menu append submenu "RTM tools" "Sample"
     window menu append item "Sample" "Sample size per domain..." "db rtmsample_size"
     window menu append item "Sample" "Allocate the sample across strata..." "db rtmsample_allocate"
     window menu append item "Sample" "Draw a sample from the frame..." "db rtmsample_draw"
-    window menu append item "Sample" "Spatially balanced draw from a grid frame (needs R)..." "db rtmsample_grid"
+    window menu append item "Sample" "Spatially spread draw from a grid frame..." "db rtmsample_grid"
+    window menu append item "Sample" "Random digit dialing sample..." "db rtmsample_rdd"
+    window menu append submenu "RTM tools" "Listing"
+    window menu append item "Listing" "Listing forms for the selected areas..." "db rtmlist_prepare"
+    window menu append item "Listing" "Import the completed listing..." "db rtmlist_import"
     window menu append item "RTM tools" "Estimate with the design..." "db rtmest"
     window menu append separator "RTM tools"
     window menu append item "RTM tools" "Dashboard and export folder" "rtmtools_dashboard"
