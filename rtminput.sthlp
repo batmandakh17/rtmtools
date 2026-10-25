@@ -103,6 +103,7 @@ into the current folder.
 {p2col:{cmd:allocation}, {cmd:power_q}, {cmd:min_areas}, {cmd:max_areas}}{cmd:proportional} | {cmd:equal} | {cmd:neyman} | {cmd:power} [proportional], the power exponent, the bounds per stratum ({helpb rtmsample} {cmd:allocate}).{p_end}
 {p2col:{cmd:stage1}, {cmd:sort_vars}, {cmd:reserve_areas}}{cmd:ppssys} | {cmd:pps} | {cmd:systematic} | {cmd:srs} | {cmd:grid} [ppssys]; the Frame columns giving the geographic order [stratum_id area_id]; reserves per stratum, a number or {cmd:all} [2] ({helpb rtmsample} {cmd:draw}, {cmd:grid}).{p_end}
 {p2col:{cmd:households_per_area}}households per selected area from the {cmd:household_list} or {cmd:listing} file [blank = no second stage].{p_end}
+{p2col:{cmd:segment_size}}households per listing segment [150]: without a household list, the listing forms for the selected areas are written after the first stage ({helpb rtmlist} {cmd:prepare}), areas above this size in segments with one chosen per area; a returned {cmd:listing} file is checked against them ({cmd:rtmlist import}) before the household draw.{p_end}
 {p2col:{cmd:phone_per_psu}}households per PSU in the phone subsample of the baseline, every other household an ordered replacement [blank = none].{p_end}
 {p2col:{cmd:rdd}}{cmd:yes} | {cmd:no} [no]: numbers from the Prefixes sheet ({helpb rtmsample} {cmd:rdd}); the numbers are saved, never exported.{p_end}
 {p2col:{cmd:base_weight}}{cmd:baseline} | {cmd:probabilities} [baseline] ({helpb rtmweight} {cmd:base}).{p_end}
@@ -121,9 +122,10 @@ into the current folder.
 {phang2}2. The Frame sheet saved as {cmd:rtm_input_frame.dta} (with the Strata labels merged), then {cmd:rtmframe list} with {cmd:minsize}, {cmd:maxsize} and {cmd:exclude}; units it flags are left out of the draw.{p_end}
 {phang2}3. {cmd:rtmsample allocate} of {cmd:n_areas} across {cmd:stratum_id} by {cmd:allocation} with the bounds.{p_end}
 {phang2}4. {cmd:rtmsample draw} (or {cmd:grid}) by {cmd:stage1}, sorted by {cmd:sort_vars}, with {cmd:reserve_areas} and the seed; saved as {cmd:rtm_sample_areas.dta} (selection, probability, weight, reserve rank, certainty).{p_end}
-{phang2}5. If {cmd:households_per_area} is set: the selected areas merged with the {cmd:household_list} file (or the completed {cmd:listing} read with {cmd:rtmlist import}), {cmd:rtmsample draw} within areas, and {cmd:rtmweight base} from the two (or three, with segments) stage probabilities; saved as {cmd:rtm_sample_households.dta}.{p_end}
-{phang2}6. If {cmd:phone_per_psu} is set: {cmd:rtmsample draw} within the baseline's PSUs with {cmd:reserve(all)}, and {cmd:rtmweight base} redistributing the baseline weight to the phone sample within strata; saved as {cmd:rtm_sample_phone.dta}.{p_end}
-{phang2}7. If {cmd:rdd} is yes: {cmd:rtmsample rdd} from the Prefixes sheet; saved as {cmd:rtm_rdd_numbers.dta}.{p_end}
+{phang2}5. Without a {cmd:household_list} file: the listing forms for the selected areas ({cmd:rtmlist prepare}, segments of {cmd:segment_size}), saved as {cmd:rtm_listing_forms.xlsx} and {cmd:rtm_sample_areas_selected.dta}.{p_end}
+{phang2}6. If {cmd:households_per_area} is set: the selected areas merged with the {cmd:household_list} file, or the completed {cmd:listing} read and checked with {cmd:rtmlist import}; then {cmd:rtmsample draw} within areas and {cmd:rtmweight base} from the two (or three, with segments) stage probabilities; saved as {cmd:rtm_sample_households.dta}.{p_end}
+{phang2}7. If {cmd:phone_per_psu} is set: {cmd:rtmsample draw} within the baseline's PSUs with {cmd:reserve(all)}, and {cmd:rtmweight base} redistributing the baseline weight to the phone sample within strata; saved as {cmd:rtm_sample_phone.dta}.{p_end}
+{phang2}8. If {cmd:rdd} is yes: {cmd:rtmsample rdd} from the Prefixes sheet; saved as {cmd:rtm_rdd_numbers.dta}.{p_end}
 
 {pstd}{bf:weights round(#)}:{p_end}
 {phang2}1. The baseline merged with the round file on {cmd:id}; a household absent from the round file counts as not interviewed.{p_end}

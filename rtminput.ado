@@ -227,8 +227,8 @@ end
 
 * ---- the Design keys, their defaults and allowed values ----
 program define _rtminput_keys, rclass
-    return local keys "project seed output_dir target p relmargin margin change power deff nonresponse_mult attrition rounds firstloss domains minsize maxsize n_areas allocation power_q min_areas max_areas stage1 sort_vars reserve_areas households_per_area phone_per_psu rdd base_weight nonresponse covariates classes cells ngroups moments trim trim_pct trim_cap trim_capmult calibrate cal_vars cal_ll cal_ul report_by report_files"
-    return local numeric "seed p relmargin margin change power deff nonresponse_mult attrition rounds firstloss domains minsize maxsize n_areas power_q min_areas max_areas households_per_area phone_per_psu ngroups moments trim_pct trim_cap trim_capmult cal_ll cal_ul"
+    return local keys "project seed output_dir target p relmargin margin change power deff nonresponse_mult attrition rounds firstloss domains minsize maxsize n_areas allocation power_q min_areas max_areas stage1 sort_vars reserve_areas households_per_area segment_size phone_per_psu rdd base_weight nonresponse covariates classes cells ngroups moments trim trim_pct trim_cap trim_capmult calibrate cal_vars cal_ll cal_ul report_by report_files"
+    return local numeric "seed p relmargin margin change power deff nonresponse_mult attrition rounds firstloss domains minsize maxsize n_areas power_q min_areas max_areas households_per_area segment_size phone_per_psu ngroups moments trim_pct trim_cap trim_capmult cal_ll cal_ul"
     return local v_target "level change"
     return local v_allocation "proportional equal neyman power"
     return local v_stage1 "ppssys pps systematic srs grid"
@@ -271,6 +271,7 @@ program define _rtminput_check, rclass
     global RTMIN_maxsize "0"
     global RTMIN_min_areas "0"
     global RTMIN_max_areas "0"
+    global RTMIN_segment_size "150"
     local sev_s = cond("`mode'" == "sampling", "error", "warning")
     local sev_w = cond("`mode'" == "weights", "error", "warning")
     * ---- Design ----
@@ -741,6 +742,8 @@ program define _rtminput_summary
         file write `fh' "<h2>Files written</h2><table><tr><th>File</th><th>What it holds</th></tr>" _n
         foreach pair in "rtm_sample_areas.dta|the area frame with the selection, probabilities, weights, reserve ranks" ///
                         "rtm_sample_households.dta|the selected households with their design weights" ///
+                        "rtm_listing_forms.xlsx|the listing forms: one sheet per selected area, with the segment to list" ///
+                        "rtm_sample_areas_selected.dta|the selected areas with their segments (the file a returned listing is checked against)" ///
                         "rtm_sample_phone.dta|the baseline with the phone sample marked and every other household's replacement rank" ///
                         "rtm_rdd_numbers.dta|the random digit dialing numbers (kept here only)" ///
                         "rtm_weights_round`round'.dta|the phone sample with the weights w0 (base), w1 (adjusted), w1t (trimmed), w2 (calibrated)" ///
@@ -845,13 +848,22 @@ program define _rtminput_sampling
     }
     _rtminput_say "First stage" `"<b>`: di %9.0fc r(n_selected)'</b> areas were selected by <b>$RTMIN_stage1</b>`=cond(inlist("$RTMIN_stage1", "pps", "ppssys"), " (probability proportional to households)", "")'`=cond("$RTMIN_sort_vars" != "", ", the frame sorted by $RTMIN_sort_vars within strata", "")', with <b>`: di %9.0fc r(n_reserve)'</b> reserve areas ranked for replacement`=cond(r(n_certainty) > 0 & r(n_certainty) < ., " and `=r(n_certainty)' taken with certainty", "")'. Seed `=r(seed)': the same seed repeats the draw."'
     _rtminput_do save "`outdir'/rtm_sample_areas.dta", replace
-    * ---- 5. second stage ----
+    * ---- 5. listing forms for the selected areas (no household list), then 6. the second stage ----
+    if "$RTMIN_F_hl" == "" {
+        _rtminput_note step 5: listing forms for the selected areas, one sheet per area, areas above $RTMIN_segment_size households in segments (rtmlist prepare)
+        _rtminput_do keep if area_sel == 1
+        _rtminput_do keep area_id stratum_id size_hh area_pi area_w
+        _rtminput_do rtmlist prepare, id(area_id) expected(size_hh) strata(stratum_id) segmentsize($RTMIN_segment_size) `seed' saving("`outdir'/rtm_listing_forms.xlsx") replace
+        _rtminput_say "Listing forms" `"The listing workbook for the <b>`: di %9.0fc r(N_areas)'</b> selected areas was written (<code>rtm_listing_forms.xlsx</code>: an Instructions sheet, an Areas sheet and one sheet per area). <b>`: di %9.0fc r(n_segmented)'</b> areas larger than $RTMIN_segment_size households were divided into segments of about that size and one segment per area was chosen at random (UN 2008 paras 138-140): the listers list that segment only, and its probability enters the household weights."'
+        _rtminput_do save "`outdir'/rtm_sample_areas_selected.dta", replace
+    }
     if "$RTMIN_households_per_area" != "" {
         if "$RTMIN_F_hl" != "" {
-            _rtminput_note step 5: second stage, $RTMIN_households_per_area households per selected area from the household list
+            _rtminput_note step 6: second stage, $RTMIN_households_per_area households per selected area from the household list
             _rtminput_asdta, path("$RTMIN_F_hl") outdir("`outdir'") name(household_list)
             local hl "`r(dta)'"
             local ha "$RTMIN_F_hl_area_id"
+            _rtminput_do use "`outdir'/rtm_sample_areas.dta", clear
             _rtminput_do keep if area_sel == 1
             _rtminput_do keep area_id stratum_id area_pi area_w
             if "`ha'" != "area_id" _rtminput_do rename area_id `ha'
@@ -862,36 +874,59 @@ program define _rtminput_sampling
             _rtminput_say "Households" `"<b>`: di %9.0fc r(N)'</b> households were selected, $RTMIN_households_per_area in each selected area, from the household list. Their design weights (1 / the product of the two stage probabilities) add to <b>`: di %12.0fc r(sum)'</b> households, which should be close to the frame's total."'
             _rtminput_do save "`outdir'/rtm_sample_households.dta", replace
         }
-        else {
-            _rtminput_note step 5: second stage from the completed listing (rtmlist import), $RTMIN_households_per_area households per area
-            _rtminput_do keep if area_sel == 1
-            _rtminput_do keep area_id stratum_id size_hh area_pi area_w
-            _rtminput_do save "`outdir'/rtm_sample_areas_selected.dta", replace
+        else if "$RTMIN_F_ls" != "" {
+            _rtminput_note step 6: second stage from the completed listing (rtmlist import), $RTMIN_households_per_area households per area
             local la "$RTMIN_F_ls_area_id"
             local lo = cond("`la'" != "" & "`la'" != "area_id", "areavar(`la')", "")
+            _rtminput_do use "`outdir'/rtm_sample_areas_selected.dta", clear
+            local idtype : type area_id
             _rtminput_do rtmlist import using "$RTMIN_F_ls", id(area_id) expected(size_hh) `lo' clear
+            _rtminput_say "Listing returned" `"The completed listing was read and checked: <b>`: di %9.0fc r(n_returned)'</b> areas returned, `=r(n_not_returned)' not returned, `=r(n_duplicates)' duplicate rows, `=r(n_over)' areas listed far above and `=r(n_under)' far below the expected count. The household frame holds <b>`: di %9.0fc r(N_frame)'</b> eligible households."'
+            * the household frame carries the area id as text; match the areas file's type before merging
+            capture confirm string variable area_id
+            local nowstr = !_rc
+            if `nowstr' & !strpos("`idtype'", "str") _rtminput_do destring area_id, replace
+            if !`nowstr' & strpos("`idtype'", "str") _rtminput_do tostring area_id, replace
             _rtminput_do merge m:1 area_id using "`outdir'/rtm_sample_areas_selected.dta", keep(match) keepusing(area_pi stratum_id) nogenerate
             _rtminput_do rtmsample draw, n($RTMIN_households_per_area) strata(area_id) `seed' generate(hh)
             _rtminput_do keep if hh_sel == 1
             _rtminput_do rtmweight base, probability(area_pi segment_prob hh_pi) generate(w_design)
-            _rtminput_say "Households" `"<b>`: di %9.0fc r(N)'</b> households were selected, $RTMIN_households_per_area in each selected area, from the completed listing (segments counted in the probability). Their design weights add to <b>`: di %12.0fc r(sum)'</b> households."'
+            _rtminput_say "Households" `"<b>`: di %9.0fc r(N)'</b> households were selected, $RTMIN_households_per_area in each selected area, from the completed listing; the segment's probability is part of the design weight. The design weights add to <b>`: di %12.0fc r(sum)'</b> households."'
             _rtminput_do save "`outdir'/rtm_sample_households.dta", replace
         }
     }
-    * ---- 6. phone subsample of the baseline ----
+    * ---- 7. phone subsample of the baseline ----
     if "$RTMIN_phone_per_psu" != "" {
-        _rtminput_note step 6: phone subsample, $RTMIN_phone_per_psu households per PSU of the baseline, every other household an ordered replacement
+        _rtminput_note step 7: phone subsample, $RTMIN_phone_per_psu households per PSU of the baseline, every other household an ordered replacement
         _rtminput_asdta, path("$RTMIN_F_bl") outdir("`outdir'") name(baseline)
         _rtminput_do use "`r(dta)'", clear
         local io = cond("$RTMIN_F_bl_id" != "", "id($RTMIN_F_bl_id)", "")
-        _rtminput_do rtmsample draw, n($RTMIN_phone_per_psu) strata($RTMIN_F_bl_psu) reserve(all) `seed' `io' generate(ph)
-        _rtminput_say "Phone sample" `"<b>`: di %9.0fc r(n_selected)'</b> baseline households were drawn to be called first, $RTMIN_phone_per_psu per PSU; the other <b>`: di %9.0fc r(n_reserve)'</b> are ranked as replacements within their PSU (ph_reserve)."'
+        local psu "$RTMIN_F_bl_psu"
+        local ph "$RTMIN_F_bl_phone"
+        * the phone sample is drawn among the households with a phone (the Files sheet's phone column);
+        * a PSU with fewer than phone_per_psu of them is taken in full
+        local eligif ""
+        if "`ph'" != "" local eligif "if `ph' == 1"
+        _rtminput_do capture drop _rtmx_nph
+        _rtminput_do bysort `psu': egen double _rtmx_nph = total(`=cond("`ph'" != "", "`ph' == 1", "1")')
+        _rtminput_do quietly replace _rtmx_nph = min(_rtmx_nph, $RTMIN_phone_per_psu)
+        quietly egen byte _rtmx_tag = tag(`psu')
+        quietly count if _rtmx_tag & _rtmx_nph < $RTMIN_phone_per_psu
+        local n_full = r(N)
+        quietly drop _rtmx_tag
+        _rtminput_do rtmsample draw `eligif', n(_rtmx_nph) strata(`psu') reserve(all) `seed' `io' generate(ph)
+        local nsel = r(n_selected)
+        local nres = r(n_reserve)
+        _rtminput_do quietly replace ph_sel = 0 if missing(ph_sel)
+        _rtminput_do drop _rtmx_nph
+        _rtminput_say "Phone sample" `"<b>`: di %9.0fc `nsel''</b> baseline households were drawn to be called first, $RTMIN_phone_per_psu per PSU`=cond("`ph'" != "", " among the households that gave a phone number", "")'; the other <b>`: di %9.0fc `nres''</b>`=cond("`ph'" != "", " with a phone", "")' are ranked as replacements within their PSU (ph_reserve), so a household that cannot be reached is replaced by the next one in its own PSU.`=cond(`n_full' == 1, " In 1 PSU fewer than $RTMIN_phone_per_psu households had a phone, and all of them were taken.", cond(`n_full' > 1, " In `n_full' PSUs fewer than $RTMIN_phone_per_psu households had a phone, and all of them were taken.", ""))'"'
         if "$RTMIN_F_bl_weight" != "" {
             local bo = cond("$RTMIN_F_bl_strata" != "", "by($RTMIN_F_bl_strata)", "")
             _rtminput_do rtmweight base, baseweight($RTMIN_F_bl_weight) subsample(ph_sel) `bo' generate(w_phone)
             _rtminput_say "Phone sample" `"Their weights carry the baseline's total of <b>`: di %12.0fc r(sum_baseline)'</b> (the baseline weight redistributed to the called households within strata, HFPS Vol. 2 p. 21)."'
         }
         _rtminput_do save "`outdir'/rtm_sample_phone.dta", replace
+        _rtminput_say "Phone sample" "For the weights of the rounds, point the Files sheet's baseline row to this file (<code>rtm_sample_phone.dta</code>) and its phone column to <code>ph_sel</code>: the households called first are then the phone sample the weights start from."
     }
     * ---- 7. random digit dialing ----
     if "$RTMIN_rdd" == "yes" {
@@ -905,7 +940,7 @@ program define _rtminput_sampling
             }
             local dg = digits[1]
         }
-        _rtminput_note step 7: random digit dialing numbers from the Prefixes sheet (kept in rtm_rdd_numbers.dta; never exported)
+        _rtminput_note step 8: random digit dialing numbers from the Prefixes sheet (kept in rtm_rdd_numbers.dta; never exported)
         _rtminput_do rtmsample rdd, prefixes(`pl') n(`nl') digits(`dg') `seed' saving("`outdir'/rtm_rdd_numbers.dta") replace
         _rtminput_say "Random digit dialing" `"<b>`: di %9.0fc r(n_numbers)'</b> numbers were generated from `=r(n_prefixes)' prefixes with `=r(digits)' random digits, none twice; they are in the output folder only and never in the export."'
     }

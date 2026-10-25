@@ -11,7 +11,7 @@ end
 * ---- version string of the package ---------------------------------------------------------
 program define _rtm_util_version, rclass
     version 16
-    return local pkgversion "0.4.0"
+    return local pkgversion "0.6.1"
     return local stamp "rtmtools 0.4.0, Stata `c(stata_version)' (`c(flavor)'), `c(current_date)' `c(current_time)'"
 end
 

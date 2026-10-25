@@ -75,10 +75,19 @@ program define rtmsample_draw, rclass
     if lower("`reserve'") == "all" quietly gen double `rh' = `U' - `nh' if `touse'      // every unselected unit is an ordered replacement (L2 practice)
     else if "`reserve'" != "" _rtmsample_pergroup `reserve', touse(`touse') grp(`grp') generate(`rh') what(reserve())
     else quietly gen double `rh' = 0 if `touse'
+    quietly count if `touse' & `nh' > `U'
+    if r(N) > 0 {
+        di as err "n() exceeds the number of units in " r(N) " frame observations' strata; lower it or check strata()"
+        exit 459
+    }
     quietly count if `touse' & `nh' + `rh' > `U'
     if r(N) > 0 {
-        di as err "n() plus reserve() exceeds the number of units in " r(N) " frame observations' strata; lower them or check strata()"
-        exit 459
+        tempvar cut
+        quietly gen byte `cut' = `touse' & `nh' + `rh' > `U'
+        quietly replace `rh' = `U' - `nh' if `cut'
+        quietly bysort `grp': replace `cut' = `cut'[1]
+        quietly tab `grp' if `cut', nofreq
+        di as text "note: the reserve was reduced to the units left after the selection in " r(r) " strata taken in full or nearly so"
     }
     if `ispps' {
         quietly gen double `size' = `pps' if `touse'

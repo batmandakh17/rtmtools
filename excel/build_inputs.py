@@ -62,6 +62,7 @@ DESIGN = [
     ("reserve_areas", "2", "reserve areas per stratum: a number, all, or 0 (UN 2008 paras 172, 178-179)"),
     ("# second stage (rtmsample draw within the selected areas)", "", ""),
     ("households_per_area", "12", "households per selected area, from the household_list or listing file of the Files sheet; blank = no second stage"),
+    ("segment_size", "150", "households per listing segment: areas above it are listed in segments, one chosen at random per area (UN 2008 paras 138-140; 150 is a common field value)"),
     ("# phone subsample of a baseline (rtmsample draw, reserve all)", "", ""),
     ("phone_per_psu", "6", "households per PSU called first, every other household an ordered replacement; blank = none (needs a baseline row in Files)"),
     ("# random digit dialing (rtmsample rdd)", "", ""),
@@ -114,6 +115,7 @@ QUESTIONS = {
     "sort_vars": "Which Frame columns give the geographic order within strata (spread the sample)?",
     "reserve_areas": "How many reserve areas per stratum (a number, all, or 0)?",
     "households_per_area": "How many households per selected area (blank = none; needs a household list or listing on Files)?",
+    "segment_size": "Above how many households should a selected area be listed in segments (one segment chosen per area)?",
     "phone_per_psu": "How many households per PSU are called first (blank = no phone subsample; needs a baseline on Files)?",
     "rdd": "Should phone numbers be generated from operator prefixes (random digit dialing)?",
     "base_weight": "Where does the base weight come from?",
@@ -140,11 +142,11 @@ LISTS = {
     "trim": "none,winsor,cap", "calibrate": "none,rake,regress,post", "report_files": "yes,no",
 }
 NUMERIC = {"seed", "p", "relmargin", "margin", "change", "power", "deff", "nonresponse_mult", "attrition", "rounds", "firstloss", "domains",
-           "minsize", "maxsize", "n_areas", "power_q", "min_areas", "max_areas", "households_per_area", "phone_per_psu", "ngroups", "moments",
+           "minsize", "maxsize", "n_areas", "power_q", "min_areas", "max_areas", "households_per_area", "segment_size", "phone_per_psu", "ngroups", "moments",
            "trim_pct", "trim_cap", "trim_capmult", "cal_ll", "cal_ul"}
 DEFAULTS = {"output_dir": "rtm_outputs", "target": "level", "allocation": "proportional", "stage1": "ppssys", "reserve_areas": "2", "rdd": "no",
             "base_weight": "baseline", "nonresponse": "propensity", "trim": "none", "calibrate": "none", "report_files": "yes",
-            "minsize": "0", "maxsize": "0", "min_areas": "0", "max_areas": "0", "deff": "2 (command)", "nonresponse_mult": "1.1 (command)",
+            "minsize": "0", "maxsize": "0", "min_areas": "0", "max_areas": "0", "segment_size": "150", "deff": "2 (command)", "nonresponse_mult": "1.1 (command)",
             "power": "0.8 (command)", "ngroups": "10 (command)", "moments": "1 (command)", "trim_pct": "98 (command)", "power_q": "0.5 (command)"}
 
 FILES_COLS = ["role", "path", "id", "response", "psu", "strata", "weight", "probabilities", "phone", "area_id", "round", "note"]

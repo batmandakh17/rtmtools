@@ -91,11 +91,17 @@ assert _N == 1200                                    // 12 households x 100 area
 quietly summarize w_design
 assert reldif(r(sum), 59831) < 1e-9                  // the design weights add to the population's households
 use "out1/rtm_sample_phone.dta", clear
-quietly count if ph_sel == 1
-assert r(N) == 600                                   // 6 per PSU x 100 PSUs
+* the phone sample is drawn among the households with a phone: 6 per PSU, or all of them where fewer have one
+bysort psu: egen double nown = total(phone == 1)
+bysort psu: egen double nsel = total(ph_sel == 1)
+assert nsel == min(6, nown)
+assert ph_sel == 0 if phone != 1
 quietly summarize w_phone
 assert reldif(r(sum), 59831) < 1e-9
-bysort psu (ph_reserve): assert ph_reserve[_N] == 6 | ph_reserve[_N] == 0   // every other household an ordered replacement
+* every other household with a phone is an ordered replacement: ranks 1 to (owners - selected) in each PSU
+bysort psu: egen double maxres = max(ph_reserve)
+assert maxres == nown - nsel if nown > nsel
+assert missing(ph_reserve) | ph_reserve == 0 if phone != 1
 * the commands do-file, run again, gives the same selection
 use "out1/rtm_sample_areas.dta", clear
 keep area_id area_sel area_reserve area_pi
