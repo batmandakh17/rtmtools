@@ -56,7 +56,8 @@ Tables and their columns:
 {p2col:{cmd:calibration_fit}}constraint, target, before, after, diff, rel_diff, converged, iterations{p_end}
 {p2col:{cmd:weight_units}}unit_id, stratum, psu, one column per weight stage, flag (with {cmd:rtmweight report, units}){p_end}
 {p2col:{cmd:flags}}table, unit_id, stage, value, reason{p_end}
-{p2col:{cmd:size}, {cmd:allocation}, {cmd:selection}, {cmd:draw_summary}, {cmd:frame_units}, {cmd:frame_summary}, {cmd:boundaries}, {cmd:listing_areas}, {cmd:listing_checks}}the sampling, frame and listing tables (written when those workflows are rebuilt on this schema){p_end}
+{p2col:{cmd:size}, {cmd:allocation}, {cmd:selection}, {cmd:draw_summary}, {cmd:frame_units}, {cmd:frame_summary}, {cmd:boundaries}, {cmd:listing_areas}, {cmd:listing_checks}}the
+sampling, frame and listing tables (written when those workflows are rebuilt on this schema){p_end}
 {p2colreset}{...}
 
 {pstd}

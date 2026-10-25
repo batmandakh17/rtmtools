@@ -22,7 +22,10 @@ choices are yours, made on the workbook's Design sheet. Nothing leaves your comp
 {pstd}You need, as files on your computer:{p_end}
 {phang2}1. A list of the areas (enumeration areas, villages, blocks) with the number of households in each and the stratum each belongs to. This goes on the workbook's {bf:Frame} sheet.{p_end}
 {phang2}2. Population totals by the groups you will calibrate to (region, urban/rural, sex by age), if you calibrate. This goes on the {bf:Totals} sheet.{p_end}
-{phang2}3. For the weights of a round: the baseline file (one row per household, with its weight, stratum and PSU) and the round's file (one row per household called, with 1 = interviewed), as Stata, CSV or Excel files. Their names go on the {bf:Files} sheet; the data stay in the files.{p_end}
+{phang2}3. For the weights of a round: the baseline file (one row per household, with its weight,
+stratum and PSU) and the round's file (one row per household called, with 1 = interviewed), as
+Stata, CSV or Excel files. Their names go on the {bf:Files} sheet; the data stay in the
+files.{p_end}
 
 {pstd}Then choose the project folder, where the workbook and the outputs will live:
 {stata "rtmtools_start, folder":show the current folder}. To change it, use the menu
@@ -85,8 +88,13 @@ for another round number use the dialog {stata "db rtminput":Run from the input 
 {marker wrong}{...}
 {title:If something goes wrong}
 
-{phang2}{bf:The check lists errors.} Each line names the sheet, the Excel row and the column. The usual ones: a repeated area_id, a missing household count, a stratum on the Frame sheet that is not on the Strata sheet, a Design value that is not one of the dropdown's choices, a file path that does not exist, a variable name that is not in the file. Fix the cell and check again.{p_end}
-{phang2}{bf:A step stops with a message.} The message names what is wrong in plain words and the Stata error behind it. The commands that ran before the stop are in {bf:rtm_outputs/rtm_input_..._commands.do}.{p_end}
+{phang2}{bf:The check lists errors.} Each line names the sheet, the Excel row and the column. The
+usual ones: a repeated area_id, a missing household count, a stratum on the Frame sheet that is not
+on the Strata sheet, a Design value that is not one of the dropdown's choices, a file path that does
+not exist, a variable name that is not in the file. Fix the cell and check again.{p_end}
+{phang2}{bf:A step stops with a message.} The message names what is wrong in plain words and the
+Stata error behind it. The commands that ran before the stop are in
+{bf:rtm_outputs/rtm_input_..._commands.do}.{p_end}
 {phang2}{bf:The dropdowns are missing} (the workbook was saved by another program): the allowed values are in each row's note and in {helpb rtminput##design:help rtminput}.{p_end}
 {phang2}{bf:You want to see what a step did, line by line.} Open the commands do-file in {bf:rtm_outputs}: each line is one documented command, with a comment above it naming the step.{p_end}
 {phang2}{bf:You know Stata and want more control.} The dialogs under {bf:User > RTM tools} run each command with every option; {helpb rtmtools} lists them.{p_end}

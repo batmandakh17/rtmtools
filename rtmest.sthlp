@@ -56,11 +56,18 @@ declares another specification.
 {marker options}{...}
 {title:Options}
 
-{phang}{opt weight(varname)} is the final weight (required; the option's full name is {cmd:weightvar()}, which error messages use). It must be positive for every observation in the estimation sample, so restrict to the respondents with {it:if}.{p_end}
+{phang}{opt weight(varname)} is the final weight (required; the option's full name is
+{cmd:weightvar()}, which error messages use). It must be positive for every observation in the
+estimation sample, so restrict to the respondents with {it:if}.{p_end}
 {phang}{opt strata(varname)} and {opt psu(varname)}: the stratum and primary-sampling-unit codes. Without psu(), observations are the sampling units.{p_end}
 {phang}{opt fpc(varname)}: finite population correction, as in svyset. Usually ignored in household surveys (Grosh and Mu{c n~}oz 1996, p. 71).{p_end}
-{phang}{opt singleunit(method)}: how strata with one sampling unit are handled: {cmd:missing} (default, as in Stata: missing standard errors), {cmd:certainty}, {cmd:scaled} or {cmd:centered}. UN 2008 (p. 57, p. 157) asks for at least two units per stratum or the collapsing of strata; the command reports singleton strata.{p_end}
-{phang}{opt vce(vcetype)}: {cmd:linearized} (default), {cmd:bootstrap}, {cmd:brr}, {cmd:jackknife} or {cmd:sdr}; replication methods need replicate weights set with svyset beforehand (use {opt nosvyset}).{p_end}
+{phang}{opt singleunit(method)}: how strata with one sampling unit are handled: {cmd:missing}
+(default, as in Stata: missing standard errors), {cmd:certainty}, {cmd:scaled} or {cmd:centered}. UN
+2008 (p. 57, p. 157) asks for at least two units per stratum or the collapsing of strata; the
+command reports singleton strata.{p_end}
+{phang}{opt vce(vcetype)}: {cmd:linearized} (default), {cmd:bootstrap}, {cmd:brr}, {cmd:jackknife}
+or {cmd:sdr}; replication methods need replicate weights set with svyset beforehand (use
+{opt nosvyset}).{p_end}
 {phang}{opt over(varname)}: domains.{p_end}
 {phang}{opt subpop(varname)}: subpopulation indicator (1 = in), the right way to restrict a design-based estimate.{p_end}
 {phang}{opt stat()}: {cmd:mean} (default), {cmd:proportion}, {cmd:total} or {cmd:ratio} with {opt ratio(numerator denominator)}.{p_end}

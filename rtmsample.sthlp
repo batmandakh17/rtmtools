@@ -362,13 +362,19 @@ size would give a probability above 1.
 {phang}Bankier, M. D. 1988. Power allocations: determining sample sizes for subnational areas. The American Statistician 42(3): 174-177.{p_end}
 {phang}Brewer, K. R. W., and M. Hanif. 1983. Sampling with Unequal Probabilities. New York: Springer.{p_end}
 {phang}Cochran, W. G. 1977. Sampling Techniques. 3rd ed. New York: Wiley.{p_end}
-{phang}Dabalen, A., A. Etang, J. Hoogeveen, E. Mushi, Y. Schipper, and J. von Engelhardt. 2016. Mobile Phone Panel Surveys in Developing Countries: A Practical Guide for Microdata Collection. World Bank. (MPPS 2016){p_end}
-{phang}Dumelle, M., T. Kincaid, A. R. Olsen, and M. Weber. 2023. spsurvey: spatial sampling design and analysis in R. Journal of Statistical Software 105(3): 1-29 (the GRTS design the serpentine order stands in for).{p_end}
+{phang}Dabalen, A., A. Etang, J. Hoogeveen, E. Mushi, Y. Schipper, and J. von Engelhardt. 2016.
+Mobile Phone Panel Surveys in Developing Countries: A Practical Guide for Microdata Collection.
+World Bank. (MPPS 2016){p_end}
+{phang}Dumelle, M., T. Kincaid, A. R. Olsen, and M. Weber. 2023. spsurvey: spatial sampling design
+and analysis in R. Journal of Statistical Software 105(3): 1-29 (the GRTS design the serpentine
+order stands in for).{p_end}
 {phang}Stevens, D. L., and A. R. Olsen. 2004. Spatially balanced sampling of natural resources. Journal of the American Statistical Association 99(465): 262-278.{p_end}
 {phang}Waksberg, J. 1978. Sampling methods for random digit dialing. Journal of the American Statistical Association 73(361): 40-46.{p_end}
 {phang}Grosh, M., and J. Mu{c n~}oz. 1996. A Manual for Planning and Implementing the Living Standards Measurement Study Survey. LSMS Working Paper 126. World Bank.{p_end}
 {phang}Hartley, H. O., and J. N. K. Rao. 1962. Sampling with unequal probabilities and without replacement. Annals of Mathematical Statistics 33: 350-374.{p_end}
-{phang}Himelein, K., S. Eckman, J. Kastelic, K. McGee, M. Wild, and N. Yoshida. 2020. High Frequency Mobile Phone Surveys of Households to Assess the Impacts of COVID-19, Vol. 2: Guidelines on Sampling Design. World Bank. (HFPS Vol. 2){p_end}
+{phang}Himelein, K., S. Eckman, J. Kastelic, K. McGee, M. Wild, and N. Yoshida. 2020. High Frequency
+Mobile Phone Surveys of Households to Assess the Impacts of COVID-19, Vol. 2: Guidelines on Sampling
+Design. World Bank. (HFPS Vol. 2){p_end}
 {phang}Jann, B. 2006 (revised 2020). gsample: Stata module to draw a random sample. SSC S456716.{p_end}
 {phang}Neyman, J. 1934. On the two different aspects of the representative method. Journal of the Royal Statistical Society 97(4): 558-625.{p_end}
 {phang}Oseni, G., A. Palacios-Lopez, H. K. Mugera, and J. Durazo. 2021. Capturing What Matters: Essential Guidelines for Designing Household Surveys. 2nd ed. LSMS Guidebook. World Bank.{p_end}

@@ -20,7 +20,8 @@
 {title:Title}
 
 {phang}
-{bf:rtmweight} {hline 2} Survey weights for a real-time monitoring phone panel: base weights, nonresponse and attrition adjustment (five labeled methods), calibration, trimming, household weights from person weights, and a weighting report; every run exported for the Excel display and the dashboard
+{bf:rtmweight} {hline 2} Survey weights for a real-time monitoring phone panel: base weights, nonresponse and attrition
+adjustment (five labeled methods), calibration, trimming, household weights from person weights, and a weighting report; every run exported for the Excel display and the dashboard
 
 
 {marker syntax}{...}
@@ -431,19 +432,31 @@ default remains the propensity adjustment followed by calibration.
 {marker references}{...}
 {title:References}
 
-{phang}Ambel, A., K. McGee, and A. Tsegay. 2021. Reducing Bias in Phone Survey Samples: Effectiveness of Reweighting Techniques Using Face-to-Face Surveys as Frames in Four African Countries. Policy Research Working Paper 9676. World Bank.{p_end}
+{phang}Ambel, A., K. McGee, and A. Tsegay. 2021. Reducing Bias in Phone Survey Samples:
+Effectiveness of Reweighting Techniques Using Face-to-Face Surveys as Frames in Four African
+Countries. Policy Research Working Paper 9676. World Bank.{p_end}
 {phang}Broccolini, C., W. Seitz, and J. P. Azevedo. 2017. Listening to Tajikistan: Household Survey. Background, Implementation, and Methods. World Bank.{p_end}
-{phang}Dabalen, A., A. Etang, J. Hoogeveen, E. Mushi, Y. Schipper, and J. von Engelhardt. 2016. Mobile Phone Panel Surveys in Developing Countries: A Practical Guide for Microdata Collection. World Bank.{p_end}
+{phang}Dabalen, A., A. Etang, J. Hoogeveen, E. Mushi, Y. Schipper, and J. von Engelhardt. 2016.
+Mobile Phone Panel Surveys in Developing Countries: A Practical Guide for Microdata Collection.
+World Bank.{p_end}
 {phang}Deville, J.-C., and C.-E. S{c a:}rndal. 1992. Calibration estimators in survey sampling. Journal of the American Statistical Association 87: 376-382.{p_end}
 {phang}Deville, J.-C., C.-E. S{c a:}rndal, and O. Sautory. 1993. Generalized raking procedures in survey sampling. Journal of the American Statistical Association 88: 1013-1020.{p_end}
-{phang}Gourlay, S., A. Ambel, P. Wollburg, I. Yacoubou Djima, A. Palacios-Lopez, T. Kilic, and K. McGee. 2026. Six Years of High-Frequency Phone Surveys: Lessons from Sub-Saharan Africa. Policy Research Working Paper 11435. World Bank.{p_end}
+{phang}Gourlay, S., A. Ambel, P. Wollburg, I. Yacoubou Djima, A. Palacios-Lopez, T. Kilic, and K.
+McGee. 2026. Six Years of High-Frequency Phone Surveys: Lessons from Sub-Saharan Africa. Policy
+Research Working Paper 11435. World Bank.{p_end}
 {phang}Hainmueller, J. 2012. Entropy balancing for causal effects: A multivariate reweighting method to produce balanced samples in observational studies. Political Analysis 20(1): 25-46.{p_end}
 {phang}Hainmueller, J., and Y. Xu. 2013. ebalance: A Stata package for entropy balancing. Journal of Statistical Software 54(7).{p_end}
 {phang}Himelein, K. 2014. Weight calculations for panel surveys with subsampling and split-off tracking. Statistics and Public Policy 1(1): 40-45.{p_end}
-{phang}Himelein, K., S. Eckman, J. Kastelic, K. McGee, M. Wild, and N. Yoshida. 2020. High Frequency Mobile Phone Surveys of Households to Assess the Impacts of COVID-19, Vol. 2: Guidelines on Sampling Design. World Bank.{p_end}
+{phang}Himelein, K., S. Eckman, J. Kastelic, K. McGee, M. Wild, and N. Yoshida. 2020. High Frequency
+Mobile Phone Surveys of Households to Assess the Impacts of COVID-19, Vol. 2: Guidelines on Sampling
+Design. World Bank.{p_end}
 {phang}Kish, L. 1992. Weighting for unequal Pi. Journal of Official Statistics 8: 183-200.{p_end}
-{phang}Kolenikov, S. 2014. Calibrating survey data using iterative proportional fitting (raking). Stata Journal 14(1): 22-59. 2019. Updates to the ipfraking ecosystem. Stata Journal 19(1): 143-184.{p_end}
-{phang}Oseni, G., A. Palacios-Lopez, H. K. Mugera, and J. Durazo. 2021. Capturing What Matters: Essential Guidelines for Designing Household Surveys. 2nd ed. LSMS Guidebook. World Bank. (CWM 2021){p_end}
+{phang}Kolenikov, S. 2014. Calibrating survey data using iterative proportional fitting (raking).
+Stata Journal 14(1): 22-59. 2019. Updates to the ipfraking ecosystem. Stata Journal 19(1):
+143-184.{p_end}
+{phang}Oseni, G., A. Palacios-Lopez, H. K. Mugera, and J. Durazo. 2021. Capturing What Matters:
+Essential Guidelines for Designing Household Surveys. 2nd ed. LSMS Guidebook. World Bank. (CWM
+2021){p_end}
 {phang}United Nations. 2008. Designing Household Survey Samples: Practical Guidelines. Studies in Methods, Series F No. 98. New York. (UN 2008){p_end}
 {phang}Pacifico, D. 2014. sreweight: A Stata command to reweight survey data to external totals. Stata Journal 14(1): 4-21.{p_end}
 {phang}Winter, N. 2002 (revised 2018). SURVWGT: Stata module to create and manipulate survey weights. SSC S427503.{p_end}
