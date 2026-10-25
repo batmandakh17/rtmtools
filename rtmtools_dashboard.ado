@@ -1,4 +1,4 @@
-*! rtmtools_dashboard.ado  version 0.4.0  24oct2026  rtmtools
+*! rtmtools_dashboard.ado  version 0.4.0  25oct2026  rtmtools
 *! Live dashboard of the runs. Every rtmtools command appends its start, progress, results or
 *! error to a run log (rtmtools_runs.js in the working directory, or the file set here). This
 *! command writes a self-contained page, rtmtools_dashboard.html, next to the log and opens it

@@ -33,6 +33,15 @@ From GitHub (the public repository `batmandakh17/rtmtools`):
 . net get rtmtools, from("https://raw.githubusercontent.com/batmandakh17/rtmtools/main/")
 ```
 
+To move an installed copy to a newer version (each release carries a newer distribution date):
+
+```
+. ado update rtmtools, update
+```
+
+Repeating `net install ..., replace` instead also works, but Stata then lists the package once per
+install in `ado dir`; `ado uninstall rtmtools` before the reinstall keeps the list clean.
+
 Then run the setup once:
 
 ```
