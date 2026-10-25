@@ -109,7 +109,7 @@ program define rtminput, rclass
     if `n_warnings' > 0 _rtminput_report_checks
     capture mkdir "`outdir'"
     local logfile "`outdir'/rtm_input_`mode'`=cond(`round' > 0, "_round`round'", "")'_commands.do"
-    file open _rtmin_fh using "`logfile'", write text replace
+    quietly file open _rtmin_fh using "`logfile'", write text replace
     file write _rtmin_fh "* commands run by rtminput using `using', `mode'`=cond(`round' > 0, " round(`round')", "")' on `c(current_date)' `c(current_time)'" _n
     file write _rtmin_fh "* (rtmtools 0.6.0; every line below is an rtmtools or Stata command; rerun this file to repeat the run)" _n
     if "`mode'" == "sampling" capture noisily _rtminput_sampling, indir("`indir'") outdir("`outdir'") present("`present'")
@@ -673,7 +673,7 @@ program define _rtminput_summary
     local proj "$RTMIN_project"
     tempname fh
     capture file close `fh'
-    file open `fh' using "`f'", write text replace
+    quietly file open `fh' using "`f'", write text replace
     file write `fh' "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>" _n
     file write `fh' "<title>`title'</title>" _n
     file write `fh' "<style>:root{--page:#f9f9f7;--ink:#0b0b0b;--muted:#8f8d86;--line:#e2e0da;--accent:#1c5cab;--good:#0ca30c;--crit:#d03b3b;--box:#eef4fc}" _n
