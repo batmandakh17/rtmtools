@@ -222,7 +222,7 @@ program define rtmframe_grid, rclass
     rename _ID unit
     if "`id'" != "_ID" {
         capture confirm string variable `id'
-        if _rc quietly gen str32 unit_name = string(`id')
+        if _rc quietly gen str32 unit_name = string(`id', "%20.0g")
         else quietly gen str32 unit_name = `id'
     }
     else quietly gen str32 unit_name = string(unit)
@@ -327,7 +327,7 @@ program define rtmframe_grid, rclass
     capture frame drop _rtmx_fu
     frame put cell_id stratum unit_name pop x y small, into(_rtmx_fu)
     frame _rtmx_fu {
-        quietly gen str32 unit_id = string(cell_id)
+        quietly gen str32 unit_id = string(cell_id, "%20.0g")
         rename (unit_name pop) (unit size)
         quietly gen str32 flag = cond(small == 1, "small", "")
         quietly gen str32 stratum_s = string(stratum)

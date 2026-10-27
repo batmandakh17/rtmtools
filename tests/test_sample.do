@@ -310,4 +310,22 @@ rtmsample rdd, prefixes(61) n(5) digits(2) seed(5) clear
 assert _N == 5
 capture noisily rtmsample rdd, prefixes(61) n(200) digits(2) seed(5) clear
 assert _rc == 459
+* ---------- 13. long numeric IDs are exported in full (a 9-digit hhid used to become 1.10e+08) ----------
+clear
+set obs 60
+gen double hhid = 110103000 + _n
+gen int psu = 1 + mod(_n - 1, 3)
+global RTM_EXPORT "on"
+global RTM_EXPORT_DIR "`c(tmpdir)'/rtm_longid_export"
+capture mkdir "$RTM_EXPORT_DIR"
+rtmsample draw, n(5) strata(psu) reserve(all) seed(3) id(hhid) generate(ph)
+global RTM_EXPORT "off"
+local run "$RTM_EXP_LAST"
+preserve
+import delimited using "`run'/selection.csv", clear stringcols(1)
+assert strlen(unit_id) == 9
+assert regexm(unit_id, "^1101030[0-9][0-9]$")
+quietly duplicates report unit_id
+assert r(unique_value) == 60
+restore
 di as result "test_sample: all assertions passed"

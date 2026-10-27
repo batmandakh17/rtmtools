@@ -248,7 +248,7 @@ program define rtmsample_draw, rclass
         if "`id'" != "" {
             local idv : word 1 of `id'
             capture confirm string variable `idv'
-            if _rc quietly gen str32 `uid' = string(`idv')
+            if _rc quietly gen str32 `uid' = string(`idv', "%20.0g")
             else quietly gen str32 `uid' = `idv'
         }
         else quietly gen str32 `uid' = "obs " + string(`ord0')

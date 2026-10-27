@@ -1,4 +1,4 @@
-rtmtools tests, 25 Oct 2026 19:06:41, Stata 18
+rtmtools tests, 27 Oct 2026 13:52:50, Stata 18
 test_weights: PASS 
 test_calibrate: PASS 
 test_est: PASS 

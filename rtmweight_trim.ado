@@ -159,7 +159,7 @@ program define rtmweight_trim, rclass
     if r(N) > 0 & r(N) <= 5000 {
         forvalues i = 1/`=_N' {
             if `trimmed'[`i'] {
-                if "`id'" != "" local uid = string(`id'[`i'])
+                if "`id'" != "" local uid = string(`id'[`i'], "%20.0g")
                 else local uid "obs `i'"
                 local why = cond(`w'[`i'] > `hi'[`i'], "weight above the upper bound `=string(`hi'[`i'], "%12.4g")'", "weight below the lower bound")
                 frame post _rtmx_fl ("weight_units") ("`uid'") ("`w'") (`w'[`i']) ("`why'")

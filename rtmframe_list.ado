@@ -228,7 +228,7 @@ program define rtmframe_list, rclass
         tempvar uid sz lab2 fl
         local idv : word 1 of `id'
         capture confirm string variable `idv'
-        if _rc quietly gen str32 `uid' = string(`idv')
+        if _rc quietly gen str32 `uid' = string(`idv', "%20.0g")
         else quietly gen str32 `uid' = `idv'
         if "`size'" != "" quietly gen double `sz' = `size'
         else quietly gen double `sz' = .

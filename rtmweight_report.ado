@@ -319,8 +319,8 @@ program define rtmweight_report, rclass
             frame put `obsno' `id' `varlist' if `touse', into(_rtmx_wu)
             frame _rtmx_wu {
                 if "`id'" != "" {
-                    capture tostring `id', generate(unit_id) force
-                    if _rc quietly gen str32 unit_id = string(`id')
+                    capture tostring `id', generate(unit_id) format(%20.0g)
+                    if _rc quietly gen str32 unit_id = string(`id', "%20.0g")
                     quietly drop `id'
                 }
                 else quietly gen str32 unit_id = "obs " + string(`obsno')

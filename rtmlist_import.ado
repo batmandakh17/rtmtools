@@ -51,7 +51,7 @@ program define rtmlist_import, rclass
     }
     keep `id' `expected' list_segments list_segment_selected list_segment_prob
     if `idstr' quietly gen str32 area_id_s = `id'
-    else quietly gen str32 area_id_s = string(`id')
+    else quietly gen str32 area_id_s = string(`id', "%20.0g")
     quietly gen byte _area_selected = 1
     drop `id'
     quietly save "`areas'"
@@ -79,7 +79,7 @@ program define rtmlist_import, rclass
     quietly count
     local N_rows = r(N)
     capture confirm string variable `areavar'
-    if _rc quietly gen str32 area_id_s = string(`areavar')
+    if _rc quietly gen str32 area_id_s = string(`areavar', "%20.0g")
     else quietly gen str32 area_id_s = trim(`areavar')
     quietly drop if area_id_s == "" & missing(`structure') & missing(`household')
     quietly count
